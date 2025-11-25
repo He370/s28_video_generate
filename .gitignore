@@ -47,3 +47,7 @@ tmp/
 videos.json
 client_secrets.json
 debug_log*.txt
+
+# Exceptions (Keep these files)
+!audio_generater/extracted_sounds/*.mp3
+!projects/horror_story/BGM/*
