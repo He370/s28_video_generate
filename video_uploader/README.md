@@ -50,6 +50,7 @@ python video_uploader/refresh_credentials.py --force
 
 # Refresh specific profile
 python video_uploader/refresh_credentials.py --profile horror --force
+python video_uploader/refresh_credentials.py --profile relax --force
 ```
 
 See [CREDENTIALS_GUIDE.md](CREDENTIALS_GUIDE.md) for more details on managing multiple accounts.
