@@ -13,7 +13,7 @@ echo "Starting White Noise 1 Hour Workflow..."
 
 # 1. Ensure tasks exist (60 mins)
 echo "Step 1: Adding tasks..."
-python3 projects/white_noise/idea_generator.py --count 1 --duration 60 --mode prod
+python3 projects/white_noise/idea_generator.py --count 1 --duration 60
 
 # 2. Generate Video
 echo "Step 2: Generating video..."
