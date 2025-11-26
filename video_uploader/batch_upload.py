@@ -14,6 +14,7 @@ def main():
     parser.add_argument("project_name", help="Name of the project (e.g., today_history)")
     parser.add_argument("--count", type=int, default=1, help="Number of videos to upload")
     parser.add_argument("--privacy", default="private", help="Privacy status (private, public, unlisted)")
+    parser.add_argument("--profile", default=None, help="Credential profile name (e.g., 'horror' for client_secrets_horror.json)")
     
     args = parser.parse_args()
     
@@ -46,9 +47,20 @@ def main():
     print(f"Found {len(to_upload)} video(s) to upload.")
 
     # Initialize uploader
-    # Assuming client_secrets.json is in the video_uploader directory
-    secrets_file = os.path.join(os.path.dirname(__file__), "client_secrets.json")
-    token_file = os.path.join(os.path.dirname(__file__), "token.pickle")
+    # Determine credential files based on profile
+    base_dir = os.path.dirname(__file__)
+    if args.profile:
+        secrets_file = os.path.join(base_dir, f"client_secrets_{args.profile}.json")
+        token_file = os.path.join(base_dir, f"token_{args.profile}.pickle")
+        print(f"Using profile '{args.profile}': {os.path.basename(secrets_file)}")
+    else:
+        secrets_file = os.path.join(base_dir, "client_secrets.json")
+        token_file = os.path.join(base_dir, "token.pickle")
+        print("Using default credentials.")
+
+    if not os.path.exists(secrets_file):
+        print(f"Error: Client secrets file not found: {secrets_file}")
+        return
     
     uploader = YouTubeUploader(client_secrets_file=secrets_file, token_file=token_file)
     
@@ -56,7 +68,7 @@ def main():
         uploader.authenticate()
     except Exception as e:
         print(f"Authentication failed: {e}")
-        print("Please ensure 'client_secrets.json' is present in the video_uploader directory.")
+        print(f"Please ensure '{os.path.basename(secrets_file)}' is present and valid.")
         return
 
     # Upload loop

@@ -3,6 +3,8 @@ import subprocess
 import sys
 import os
 import datetime
+import csv
+import re
 from email_notifier import EmailNotifier
 
 def run_command(command, project_name):
@@ -47,10 +49,41 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     
     # Run the job
+    start_time = datetime.datetime.now()
     success, output = run_command(args.command, args.project)
+    end_time = datetime.datetime.now()
+    duration = end_time - start_time
+    
+    # Check if uploaded to YouTube
+    # We look for "Video <index> marked as uploaded" or similar success message in the output
+    uploaded = "marked as uploaded" in output
+    
+    # Append to CSV log
+    csv_log_path = os.path.join(log_dir, "job_history.csv")
+    file_exists = os.path.isfile(csv_log_path)
+    
+    with open(csv_log_path, mode='a', newline='') as csv_file:
+        fieldnames = ['timestamp', 'project', 'status', 'duration', 'start_time', 'end_time', 'uploaded_to_youtube', 'log_file']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow({
+            'timestamp': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'project': args.project,
+            'status': "success" if success else "failure",
+            'duration': str(duration),
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'end_time': end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'uploaded_to_youtube': uploaded,
+            'log_file': f"{args.project}_{'success' if success else 'failure'}_{start_time.strftime('%Y-%m-%d_%H-%M-%S')}.log"
+        })
+        
+    print(f"Job history appended to {csv_log_path}")
     
     # Save log
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = start_time.strftime("%Y-%m-%d_%H-%M-%S")
     status = "success" if success else "failure"
     log_filename = f"{args.project}_{status}_{timestamp}.log"
     log_path = os.path.join(log_dir, log_filename)

@@ -33,7 +33,9 @@ Create or update `automation/config.json` with your email credentials:
 Ensure the workflow scripts are executable:
 
 ```bash
+chmod +x automation/workflows/history_story_daily.sh
 chmod +x automation/workflows/today_history_daily.sh
+chmod +x automation/workflows/horror_story_daily.sh
 ```
 
 ## Mac Cron Setup
@@ -56,6 +58,9 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
 
     # History Story - Daily at 8:00 PM
     0 20 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project history_story --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/history_story_daily.sh"
+
+    # Horror Story - Daily at 8:00 PM
+    0 20 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project horror_story --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/horror_story_daily.sh"
     ```
 
     *Replace `/usr/bin/python3` with the path to your python executable if different (run `which python3` to check).*

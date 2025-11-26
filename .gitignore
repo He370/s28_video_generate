@@ -34,6 +34,7 @@ ENV/
 .DS_Store
 
 # Project Specific
+automation/logs/
 output/
 projects/*/output/
 *.mp4
@@ -45,7 +46,7 @@ projects/*/output/
 temp/
 tmp/
 videos.json
-client_secrets.json
+client_secrets*.json
 debug_log*.txt
 
 # Exceptions (Keep these files)

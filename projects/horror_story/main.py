@@ -51,7 +51,7 @@ def generate_video_for_item(
             language=language, 
             mode=mode,
             voice_name="Charon", # Deep voice
-            prompt_prefix="Please read the following text in a deep, slightly faster than regular speed, and tone suitable for a horror story: "
+            prompt_prefix="Please read the following text in a 1.1x speed, and tone suitable for a horror story: "
         )
 
         # 1. Generate or Load Script

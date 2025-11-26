@@ -60,13 +60,13 @@ class VideoMaker:
         if bgm_file and os.path.exists(bgm_file):
             try:
                 from moviepy import CompositeAudioClip
-                from moviepy.audio.fx.all import audio_loop
+                from moviepy.audio.fx import AudioLoop
                 
                 bgm_clip = AudioFileClip(bgm_file)
                 
                 # Loop BGM if it's shorter than the video
                 if bgm_clip.duration < final_clip.duration:
-                    bgm_clip = audio_loop(bgm_clip, duration=final_clip.duration)
+                    bgm_clip = bgm_clip.with_effects([AudioLoop(duration=final_clip.duration)])
                 else:
                     bgm_clip = bgm_clip.subclipped(0, final_clip.duration)
                 
