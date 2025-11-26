@@ -329,6 +329,10 @@ def main():
                     youtube_description = metadata.get("description", "")
                     youtube_tags = metadata.get("tags", [])
                     
+                    # Add project specific hashtags
+                    project_hashtags = "\n\n#Horror #Scary #Creepy #UrbanLegend"
+                    youtube_description += project_hashtags
+                    
                     print(f"Generated Title: {youtube_title}")
                 else:
                     print("Script file not found, skipping metadata generation.")

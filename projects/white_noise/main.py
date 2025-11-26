@@ -255,7 +255,7 @@ def main():
                     "generated", 
                     output_path=output_video_path,
                     youtube_title=metadata.get("title", ""),
-                    youtube_description=metadata.get("description", ""),
+                    youtube_description=metadata.get("description", "") + "\n\n#WhiteNoise #Relax #Sleep #Focus #Ambient",
                     youtube_tags=metadata.get("tags", [])
                 )
                 print(f"Video status and metadata updated for video {video['index']}")
