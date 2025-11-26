@@ -28,13 +28,13 @@ Upload videos for a specific project.
 
 ```bash
 # Upload 1 video from 'today_history' project using default credentials
-python video_uploader/batch_upload.py today_history
+python3 video_uploader/batch_upload.py today_history
 
 # Upload 3 videos to 'horror' channel
-python video_uploader/batch_upload.py horror_story --count 3 --profile horror
+python3 video_uploader/batch_upload.py horror_story --count 3 --profile horror
 
 # Upload as public (default is private)
-python video_uploader/batch_upload.py today_history --privacy public
+python3 video_uploader/batch_upload.py today_history --privacy public
 ```
 
 ### Refresh Credentials
@@ -43,14 +43,14 @@ If your GCP project is in "Testing" mode, refresh tokens expire every 7 days. Us
 
 ```bash
 # Refresh all found credentials
-python video_uploader/refresh_credentials.py
+python3 video_uploader/refresh_credentials.py
 
 # Force refresh (e.g., to switch accounts)
-python video_uploader/refresh_credentials.py --force
+python3 video_uploader/refresh_credentials.py --force
 
 # Refresh specific profile
-python video_uploader/refresh_credentials.py --profile horror --force
-python video_uploader/refresh_credentials.py --profile relax --force
+python3 video_uploader/refresh_credentials.py --profile horror --force
+python3 video_uploader/refresh_credentials.py --profile relax --force
 ```
 
 See [CREDENTIALS_GUIDE.md](CREDENTIALS_GUIDE.md) for more details on managing multiple accounts.

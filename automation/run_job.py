@@ -58,6 +58,11 @@ def main():
     # We look for "Video <index> marked as uploaded" or similar success message in the output
     uploaded = "marked as uploaded" in output
     
+    if success and not uploaded:
+        print(f"[{datetime.datetime.now()}] Job succeeded but NO video was uploaded. Marking as failure.")
+        success = False
+        output += "\n\n[ERROR] No video was uploaded during this run."
+    
     # Append to CSV log
     csv_log_path = os.path.join(log_dir, "job_history.csv")
     file_exists = os.path.isfile(csv_log_path)
