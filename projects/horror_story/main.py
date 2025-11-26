@@ -320,7 +320,9 @@ def main():
                     metadata = metadata_gen.generate_metadata(
                         script=script_content,
                         topic=video_item.get('topic'),
-                        style=video_item.get('type')
+                        style=video_item.get('type'),
+                        default_tags=["horror", "scary", "creepy", "story", "urban legend", "rules horror"],
+                        default_description=f"A terrifying horror story about {video_item.get('topic')}."
                     )
                     
                     youtube_title = metadata.get("title", "")

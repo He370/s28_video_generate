@@ -36,6 +36,7 @@ Ensure the workflow scripts are executable:
 chmod +x automation/workflows/history_story_daily.sh
 chmod +x automation/workflows/today_history_daily.sh
 chmod +x automation/workflows/horror_story_daily.sh
+chmod +x automation/workflows/white_noise_daily.sh
 ```
 
 ## Mac Cron Setup
@@ -61,6 +62,9 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
 
     # Horror Story - Daily at 8:00 PM
     0 20 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project horror_story --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/horror_story_daily.sh"
+
+    # White Noise - Daily at 9:00 PM
+    0 21 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project white_noise --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/white_noise_daily.sh"
     ```
 
     *Replace `/usr/bin/python3` with the path to your python executable if different (run `which python3` to check).*

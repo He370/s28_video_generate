@@ -83,7 +83,8 @@ def main():
         tags = video.get('youtube_tags', ['history'])
         
         # Append disclaimer or tags to description if needed
-        description += "\n\n#history #ai #generated"
+        # Append disclaimer or tags to description if needed
+        # description += "\n\n#history #ai #generated"
 
         if not video_path or not os.path.exists(video_path):
             print(f"Skipping video {video_index}: File not found at {video_path}")

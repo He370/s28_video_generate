@@ -392,7 +392,9 @@ def main():
                         script=script_content,
                         topic=f"History events on {video_item.get('date')}",
                         date=video_item.get('date'),
-                        extra_requirements=f"Start the title with topic and date, for example 'Today in History: November 26th, ...'"
+                        extra_requirements=f"Start the title with topic and date, for example 'Today in History: November 26th, ...'",
+                        default_tags=["history", "education", "on this day", "historical events", "documentary"],
+                        default_description=f"Discover the historical events that happened on {video_item.get('date')}."
                     )
                     
                     youtube_title = metadata.get("title", "")

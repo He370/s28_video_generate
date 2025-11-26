@@ -6,7 +6,7 @@ class MetadataGenerator:
     def __init__(self, client: GeminiClient):
         self.client = client
 
-    def generate_metadata(self, script: str, topic: str, date: Optional[str] = None, style: Optional[str] = None, extra_requirements: Optional[str] = None) -> Dict[str, str]:
+    def generate_metadata(self, script: str, topic: str, date: Optional[str] = None, style: Optional[str] = None, extra_requirements: Optional[str] = None, default_tags: List[str] = None, default_description: str = "Generated video.") -> Dict[str, str]:
         """
         Generates YouTube title, description, and tags based on the video script.
         
@@ -78,6 +78,6 @@ class MetadataGenerator:
             print(f"Error generating metadata: {e}")
             return {
                 "title": f"Video about {topic}",
-                "description": "Generated video.",
-                "tags": ["history", "ai", "generated"]
+                "description": default_description,
+                "tags": default_tags if default_tags else ["generated", "ai"]
             }
