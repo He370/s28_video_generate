@@ -16,13 +16,17 @@ def refresh_all_credentials(force=False, profile=None):
     # Find all client secret files
     # Pattern: client_secrets.json (default) or client_secrets_<profile>.json
     if profile:
-        secret_files = [os.path.join(base_dir, f"client_secrets_{profile}.json")]
-        if not os.path.exists(secret_files[0]):
-            # Check if it's the default profile
-            if profile == "default":
-                secret_files = [os.path.join(base_dir, "client_secrets.json")]
+        specific_secret = os.path.join(base_dir, f"client_secrets_{profile}.json")
+        if os.path.exists(specific_secret):
+            secret_files = [specific_secret]
+        else:
+            # Fallback to default
+            default_secret = os.path.join(base_dir, "client_secrets.json")
+            if os.path.exists(default_secret):
+                print(f"No specific client_secrets found for '{profile}', using default client_secrets.json")
+                secret_files = [default_secret]
             else:
-                print(f"No client_secrets file found for profile: {profile}")
+                print(f"No client_secrets file found for profile: {profile} and no default found.")
                 return
     else:
         secret_files = glob.glob(os.path.join(base_dir, "client_secrets*.json"))
@@ -39,8 +43,12 @@ def refresh_all_credentials(force=False, profile=None):
         
         # Determine profile name and token filename
         if filename == "client_secrets.json":
-            profile = "default"
-            token_file = os.path.join(base_dir, "token.pickle")
+            if profile and profile != "default":
+                # We are using default secrets for a specific profile
+                token_file = os.path.join(base_dir, f"token_{profile}.pickle")
+            else:
+                profile = "default"
+                token_file = os.path.join(base_dir, "token.pickle")
         else:
             # Extract profile from client_secrets_<profile>.json
             # len("client_secrets_") = 15, len(".json") = 5

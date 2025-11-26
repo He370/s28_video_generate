@@ -18,7 +18,7 @@ This module handles uploading generated videos to YouTube using the YouTube Data
 3.  **Download JSON**: Download the client secret JSON file.
 4.  **Install**: Place the JSON file in this directory (`video_uploader/`).
     *   Default: `client_secrets.json`
-    *   Profile: `client_secrets_<profile_name>.json` (e.g., `client_secrets_horror.json`)
+    *   Profile: `client_secrets_<profile_name>.json` (e.g., `client_secrets_horror.json`). If a profile-specific file is not found, the default `client_secrets.json` will be used.
 
 ## Usage
 
@@ -28,13 +28,13 @@ Upload videos for a specific project.
 
 ```bash
 # Upload 1 video from 'today_history' project using default credentials
-python3 video_uploader/batch_upload.py today_history
+venv/bin/python video_uploader/batch_upload.py today_history
 
 # Upload 3 videos to 'horror' channel
-python3 video_uploader/batch_upload.py horror_story --count 3 --profile horror
+venv/bin/python video_uploader/batch_upload.py horror_story --count 3 --profile horror
 
 # Upload as public (default is private)
-python3 video_uploader/batch_upload.py today_history --privacy public
+venv/bin/python video_uploader/batch_upload.py today_history --privacy public
 ```
 
 ### Refresh Credentials
@@ -43,14 +43,15 @@ If your GCP project is in "Testing" mode, refresh tokens expire every 7 days. Us
 
 ```bash
 # Refresh all found credentials
-python3 video_uploader/refresh_credentials.py
+venv/bin/python video_uploader/refresh_credentials.py
 
 # Force refresh (e.g., to switch accounts)
-python3 video_uploader/refresh_credentials.py --force
+venv/bin/python video_uploader/refresh_credentials.py --force
 
-# Refresh specific profile
-python3 video_uploader/refresh_credentials.py --profile horror --force
-python3 video_uploader/refresh_credentials.py --profile relax --force
+# Refresh specific profile (will use default client_secrets.json if specific one missing)
+venv/bin/python video_uploader/refresh_credentials.py --profile default --force
+venv/bin/python video_uploader/refresh_credentials.py --profile horror --force
+venv/bin/python video_uploader/refresh_credentials.py --profile relax --force
 ```
 
 See [CREDENTIALS_GUIDE.md](CREDENTIALS_GUIDE.md) for more details on managing multiple accounts.
