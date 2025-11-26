@@ -55,19 +55,19 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
 
     ```bash
     # Today History - Daily at 8:00 AM
-    0 8 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project today_history --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/today_history_daily.sh"
+    0 8 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project today_history --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/today_history_daily.sh"
 
     # History Story - Daily at 8:00 PM
-    0 20 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project history_story --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/history_story_daily.sh"
+    0 20 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_daily.sh"
 
-    # Horror Story - Daily at 8:00 PM
-    0 20 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project horror_story --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/horror_story_daily.sh"
+    # Horror Story - Daily at 0:00 AM
+    0 0 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project horror_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/horror_story_daily.sh"
 
     # White Noise - Daily at 9:00 PM
-    0 21 * * * /usr/bin/python3 /Users/Leo/Documents/antigravity/video_generate/automation/run_job.py --project white_noise --command "/Users/Leo/Documents/antigravity/video_generate/automation/workflows/white_noise_daily.sh"
+    0 21 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project white_noise --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/white_noise_daily.sh"
     ```
 
-    *Replace `/usr/bin/python3` with the path to your python executable if different (run `which python3` to check).*
+    *Note: We use the virtual environment's python executable to ensure all dependencies are available.*
     *Ensure the paths match your actual project location.*
 
 3.  **Save and Exit**:

@@ -12,7 +12,7 @@ Since this project is not yet a Git repository, follow these steps to initialize
 
 ### Steps
 1.  **Initialize Git:**
-    Open your terminal in the project root (`/Users/Leo/Documents/antigravity/video_generate`) and run:
+    Open your terminal in the project root (`/Users/leo/Documents/antigravity/s28_video_generate`) and run:
     ```bash
     git init
     ```
