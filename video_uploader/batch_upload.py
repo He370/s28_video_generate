@@ -112,6 +112,14 @@ def main():
                 )
                 print(f"✓ Video {video_index} marked as uploaded.")
                 
+                # Delete video file if project is white_noise
+                if args.project_name == "white_noise" and os.path.exists(video_path):
+                    try:
+                        os.remove(video_path)
+                        print(f"Deleted video file: {video_path}")
+                    except Exception as e:
+                        print(f"Error deleting video file: {e}")
+                
                 # Upload thumbnail (scene_0.png)
                 try:
                     video_dir = os.path.dirname(video_path)

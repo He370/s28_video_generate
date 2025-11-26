@@ -159,51 +159,22 @@ def select_sounds(client: GeminiClient, scene_description: str, available_sounds
         print(f"Error selecting sounds: {e}")
         return []
 
-def create_looped_audio(sound_path: str, target_duration: float, volume: float, crossfade: float = 3.0) -> AudioFileClip:
+def create_looped_audio(sound_path: str, target_duration: float, volume: float) -> AudioFileClip:
     """
-    Load an audio file and loop it to fill the duration with crossfading.
+    Load an audio file and loop it to fill the duration.
+    Since the source files are preprocessed seamless loops, we can just concatenate them.
     """
     audio = AudioFileClip(sound_path)
     
-    # If audio is very short, reduce crossfade
-    if audio.duration < crossfade * 2:
-        crossfade = audio.duration / 3
-        
     if audio.duration >= target_duration:
         return audio.subclipped(0, target_duration).with_volume_scaled(volume)
         
-    # Calculate loops
-    # Effective length of each segment (except last) is duration - crossfade
-    effective_length = audio.duration - crossfade
+    # Calculate loops needed
+    n_loops = int(target_duration / audio.duration) + 1
+    clips = [audio] * n_loops
     
-    clips = []
-    current_time = 0
-    while current_time < target_duration:
-        # Create clip copy
-        clip = audio.copy()
-        
-        # Apply fades for seamless looping
-        effects = []
-        
-        # Fade in start (except for the very first clip at 0, unless we want to smooth start too)
-        # To make it seamless with the previous clip's fade out, we need fade in.
-        # For the first clip, we don't need fade in usually, but let's keep it simple.
-        if current_time > 0:
-            effects.append(AudioFadeIn(duration=crossfade))
-            
-        # Fade out end to mix with next clip
-        effects.append(AudioFadeOut(duration=crossfade))
-        
-        if effects:
-            clip = clip.with_effects(effects)
-            
-        clip = clip.with_start(current_time)
-        clips.append(clip)
-        
-        current_time += effective_length
-        
-    # Composite
-    final_audio = CompositeAudioClip(clips)
+    # Concatenate
+    final_audio = concatenate_audioclips(clips)
     
     # Trim to exact duration
     final_audio = final_audio.subclipped(0, target_duration)
@@ -220,7 +191,7 @@ def main():
     project_dir = os.path.dirname(os.path.abspath(__file__))
     videos_json_path = os.path.join(project_dir, "videos.json")
     output_dir = os.path.join(project_dir, "output")
-    sound_dir = os.path.join(project_dir, "../../audio_generater/extracted_sounds")
+    sound_dir = os.path.join(project_dir, "resources")
     
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -307,18 +278,25 @@ def main():
             # 1. Generate Image
             print("Step 1: Generating Image...")
             
-            # Generate tuned prompt
-            print("Generating tuned image prompt...")
-            tuned_prompt = generate_tuned_image_prompt(client, video['scene_description'], video['art_style'])
-            print(f"Tuned Prompt: {tuned_prompt[:100]}...")
-            
             image_path = os.path.join(assets_dir, "scene.png")
+            tuned_prompt = existing_segments.get("tuned_prompt", "")
             
-            # Use existing image path if available in segments
+            # Check if image exists
+            image_exists = False
             if "image_path" in existing_segments and os.path.exists(existing_segments["image_path"]):
                 image_path = existing_segments["image_path"]
+                image_exists = True
                 print(f"Using existing image from segments.json: {image_path}")
-            elif not os.path.exists(image_path):
+            elif os.path.exists(image_path):
+                image_exists = True
+                print("Image already exists.")
+                
+            if not image_exists:
+                # Generate tuned prompt only if we need to generate the image
+                print("Generating tuned image prompt...")
+                tuned_prompt = generate_tuned_image_prompt(client, video['scene_description'], video['art_style'])
+                print(f"Tuned Prompt: {tuned_prompt[:100]}...")
+                
                 # Use advanced model for better quality
                 from video_generation_tool import constants
                 success = utils.generate_image_with_retry(
@@ -330,8 +308,6 @@ def main():
                 if not success:
                     print("Failed to generate image. Skipping.")
                     continue
-            else:
-                print("Image already exists.")
 
             # 2. Select Sounds
             print("Step 2: Selecting Sounds...")
