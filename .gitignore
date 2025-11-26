@@ -53,3 +53,4 @@ debug_log*.txt
 # Exceptions (Keep these files)
 !audio_generater/extracted_sounds/*.mp3
 !projects/horror_story/BGM/*
+!projects/white_noise/resources/*.mp3

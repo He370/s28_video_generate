@@ -5,6 +5,7 @@ import argparse
 import random
 from typing import List, Dict, Tuple
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_audioclips
+from moviepy.audio.fx import AudioFadeIn, AudioFadeOut
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
@@ -42,7 +43,7 @@ def generate_concept_and_select_sounds(client: GeminiClient, available_sounds: L
     {sound_list_str}
     
     Task:
-    1. Analyze the sounds and come up with a cohesive and attractivetheme/scene (e.g., "Rainy Cafe", "Space Station", "Forest Campfire").
+    1. Analyze the sounds and come up with a cohesive and attractive theme/scene (e.g., "Rainy Cafe", "Space Station", "Forest Campfire").
     2. Create a short Title (Topic).
     3. Write a detailed Scene Description for visual generation.
     4. Define an Art Style.
@@ -158,21 +159,55 @@ def select_sounds(client: GeminiClient, scene_description: str, available_sounds
         print(f"Error selecting sounds: {e}")
         return []
 
-def create_looped_audio(sound_path: str, target_duration: float, volume: float) -> AudioFileClip:
-    """Load an audio file and loop it to fill the duration."""
+def create_looped_audio(sound_path: str, target_duration: float, volume: float, crossfade: float = 3.0) -> AudioFileClip:
+    """
+    Load an audio file and loop it to fill the duration with crossfading.
+    """
     audio = AudioFileClip(sound_path)
     
-    # If audio is shorter than target, loop it
-    if audio.duration < target_duration:
-        n_loops = int(target_duration / audio.duration) + 1
-        # Create a list of clips to concatenate
-        clips = [audio] * n_loops
-        looped_audio = concatenate_audioclips(clips)
-        # Trim to exact duration
-        final_audio = looped_audio.subclipped(0, target_duration)
-    else:
-        final_audio = audio.subclipped(0, target_duration)
+    # If audio is very short, reduce crossfade
+    if audio.duration < crossfade * 2:
+        crossfade = audio.duration / 3
         
+    if audio.duration >= target_duration:
+        return audio.subclipped(0, target_duration).with_volume_scaled(volume)
+        
+    # Calculate loops
+    # Effective length of each segment (except last) is duration - crossfade
+    effective_length = audio.duration - crossfade
+    
+    clips = []
+    current_time = 0
+    while current_time < target_duration:
+        # Create clip copy
+        clip = audio.copy()
+        
+        # Apply fades for seamless looping
+        effects = []
+        
+        # Fade in start (except for the very first clip at 0, unless we want to smooth start too)
+        # To make it seamless with the previous clip's fade out, we need fade in.
+        # For the first clip, we don't need fade in usually, but let's keep it simple.
+        if current_time > 0:
+            effects.append(AudioFadeIn(duration=crossfade))
+            
+        # Fade out end to mix with next clip
+        effects.append(AudioFadeOut(duration=crossfade))
+        
+        if effects:
+            clip = clip.with_effects(effects)
+            
+        clip = clip.with_start(current_time)
+        clips.append(clip)
+        
+        current_time += effective_length
+        
+    # Composite
+    final_audio = CompositeAudioClip(clips)
+    
+    # Trim to exact duration
+    final_audio = final_audio.subclipped(0, target_duration)
+    
     return final_audio.with_volume_scaled(volume)
 
 def main():
