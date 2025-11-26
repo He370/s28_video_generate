@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Daily workflow for History Story project
+# Workflow for History Story (Mystery)
 set -e
 
 # Get the directory where the script is located
@@ -10,11 +10,11 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/venv/bin/activate"
 
-echo "Starting History Story Daily Workflow..."
+echo "Starting History Story (Mystery) Workflow..."
 
-# 1. Generate Idea
-echo "Step 1: Generating idea..."
-python3 projects/history_story/idea_generator.py --count 1
+# 1. Generate Idea (Mystery)
+echo "Step 1: Generating idea (Mystery)..."
+python3 projects/history_story/idea_generator.py --count 1 --type mystery
 
 # 2. Generate Video
 echo "Step 2: Generating video..."

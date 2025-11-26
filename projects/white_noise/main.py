@@ -364,7 +364,7 @@ def main():
                     continue
                     
                 final_audio = CompositeAudioClip(audio_clips)
-                final_audio = final_audio.with_volume_scaled(0.6)
+                final_audio = final_audio.with_volume_scaled(0.5)
                 
                 # Create Video
                 video_clip = ImageClip(image_path).with_duration(duration_sec)
@@ -384,10 +384,21 @@ def main():
                 # 4. Generate Metadata
                 print("Step 4: Generating Metadata...")
                 metadata_generator = MetadataGenerator(client)
+                # Format duration string
+                duration_mins = video['duration_minutes']
+                if duration_mins == 60:
+                    duration_str = "1 Hour"
+                elif duration_mins == 180:
+                    duration_str = "3 Hours"
+                elif duration_mins == 120:
+                    duration_str = "2 Hours"
+                else:
+                    duration_str = f"{duration_mins} Minutes"
+
                 metadata = metadata_generator.generate_metadata(
                     script=f"Relaxing white noise video. Scene: {video['scene_description']}",
                     topic=video['topic'],
-                    extra_requirements=f"STRICTLY START the title with 'X duration White Noise'. Example: '30 Minutes White Noise Relax Video - {video['topic']}'.",
+                    extra_requirements=f"STRICTLY START the title with '{duration_str} White Noise'. Example: '{duration_str} White Noise Relax Video - {video['topic']}'.",
                     default_tags=["white noise", "relax", "sleep", "focus", "ambient", "study", "meditation"],
                     default_description=f"Relaxing white noise video: {video['topic']}. Perfect for sleep, study, and focus."
                 )
