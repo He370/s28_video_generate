@@ -3,7 +3,7 @@ import sys
 import json
 import argparse
 import random
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_audioclips
 
 # Add project root to path
@@ -13,6 +13,7 @@ from video_generation_tool.gemini_client import GeminiClient
 from video_generation_tool import batch_processor
 from video_generation_tool import utils
 from video_generation_tool.metadata_generator import MetadataGenerator
+from video_generation_tool.constants import GEMINI_TEXT_ADVANCED_MODEL
 
 def list_available_sounds(sound_dir: str) -> List[str]:
     """Recursively list all audio files in the directory."""
@@ -25,8 +26,94 @@ def list_available_sounds(sound_dir: str) -> List[str]:
                 sound_files.append(rel_path)
     return sound_files
 
+def generate_concept_and_select_sounds(client: GeminiClient, available_sounds: List[str]) -> Dict:
+    """
+    Generate a video concept AND select sounds in a single call.
+    Uses the advanced model for better reasoning.
+    """
+    
+    # Limit sound list if too long
+    sound_list_str = "\n".join(available_sounds[:150]) # Increased limit slightly for advanced model
+    
+    prompt = f"""
+    I have a library of sound effects and I need to create a "White Noise" video concept based on them.
+    
+    Available Sound Effects:
+    {sound_list_str}
+    
+    Task:
+    1. Analyze the sounds and come up with a cohesive and attractivetheme/scene (e.g., "Rainy Cafe", "Space Station", "Forest Campfire").
+    2. Create a short Title (Topic).
+    3. Write a detailed Scene Description for visual generation.
+    4. Define an Art Style.
+    5. Select 2 to 4 sound effects from the list that best match the scene.
+    6. Assign a volume level (0.1 to 1.0) for each sound to create a balanced mix. Background ambience should be louder (0.6-0.8), subtle accents should be quieter (0.1-0.3).
+    
+    Output strictly in JSON format:
+    {{
+        "topic": "Short Title",
+        "scene_description": "Detailed visual description...",
+        "art_style": "Art style description...",
+        "selected_sounds": [
+            {{
+                "filename": "relative/path/to/sound.mp3",
+                "volume": 0.5
+            }},
+            ...
+        ]
+    }}
+    """
+    
+    try:
+        # Use the advanced model
+        response = client.generate_text(
+            prompt, 
+            response_mime_type="application/json",
+            model=GEMINI_TEXT_ADVANCED_MODEL
+        )
+        result = json.loads(response)
+        
+        # Validate sounds
+        valid_sounds = []
+        if "selected_sounds" in result:
+            for item in result["selected_sounds"]:
+                if item['filename'] in available_sounds:
+                    valid_sounds.append(item)
+                else:
+                    print(f"Warning: Gemini selected non-existent file: {item['filename']}")
+            result["selected_sounds"] = valid_sounds
+            
+        return result
+    except Exception as e:
+        print(f"Error generating concept and sounds: {e}")
+        return {}
+
+def generate_tuned_image_prompt(client: GeminiClient, scene_description: str, art_style: str) -> str:
+    """Generate a tuned image prompt for better quality."""
+    
+    prompt = f"""
+    I need a high-quality image generation prompt for a video background.
+    
+    Scene: {scene_description}
+    Style: {art_style}
+    
+    Task:
+    Write a detailed, descriptive prompt optimized for an AI image generator (like Imagen or Midjourney). 
+    Include details about lighting, composition, texture, and mood. 
+    The image should be wide (16:9) and suitable for a background.
+    
+    Output only the raw prompt text.
+    """
+    
+    try:
+        response = client.generate_text(prompt)
+        return response.strip()
+    except Exception as e:
+        print(f"Error generating tuned prompt: {e}")
+        return f"{scene_description}, {art_style}, high quality, 8k, detailed"
+
 def select_sounds(client: GeminiClient, scene_description: str, available_sounds: List[str]) -> List[Dict]:
-    """Ask Gemini to select suitable sounds."""
+    """Ask Gemini to select suitable sounds (Fallback/Standalone)."""
     
     # Limit the list of sounds if it's too long to avoid token limits
     # Assuming filenames are descriptive enough
@@ -119,7 +206,7 @@ def main():
             break
             
         if video.get("status") == "pending":
-            print(f"\nProcessing video: {video['topic']}")
+            print(f"\nProcessing video index: {video.get('index')}")
             
             # Create video specific output folder
             video_index = video.get("index", len(videos)) # Fallback if index missing
@@ -137,10 +224,59 @@ def main():
                         existing_segments = json.load(f)
                 except Exception as e:
                     print(f"Error loading segments.json: {e}")
+            
+            # Variables to hold generated data
+            selected_sounds = existing_segments.get("selected_sounds", [])
+            
+            # Check if we need to generate the concept first
+            if video.get("topic") == "Pending Generation" or not video.get("scene_description"):
+                print("Generating concept and selecting sounds...")
+                available_sounds = list_available_sounds(sound_dir)
+                if not available_sounds:
+                    print("No sounds available to generate concept. Skipping.")
+                    continue
+                    
+                # Use the combined function
+                concept_result = generate_concept_and_select_sounds(client, available_sounds)
+                if not concept_result:
+                    print("Failed to generate concept. Skipping.")
+                    continue
+                
+                # Update video object
+                video["topic"] = concept_result.get("topic", "Untitled White Noise")
+                video["scene_description"] = concept_result.get("scene_description", "")
+                video["art_style"] = concept_result.get("art_style", "Digital Art")
+                
+                # Get the selected sounds from the result
+                selected_sounds = concept_result.get("selected_sounds", [])
+                
+                # Save updated concept to json immediately
+                batch_processor.update_video_status(
+                    videos_json_path, 
+                    video['index'], 
+                    "pending", 
+                    topic=video["topic"],
+                    scene_description=video["scene_description"],
+                    art_style=video["art_style"]
+                )
+                print(f"Concept generated: {video['topic']}")
+                print(f"Pre-selected {len(selected_sounds)} sounds.")
+                
+                # Save pre-selected sounds to segments.json so we don't lose them
+                existing_segments["selected_sounds"] = selected_sounds
+                with open(segments_path, 'w') as f:
+                    json.dump(existing_segments, f, indent=4)
+
+            print(f"Processing video: {video['topic']}")
 
             # 1. Generate Image
             print("Step 1: Generating Image...")
-            image_prompt = f"{video['scene_description']}, {video['art_style']}"
+            
+            # Generate tuned prompt
+            print("Generating tuned image prompt...")
+            tuned_prompt = generate_tuned_image_prompt(client, video['scene_description'], video['art_style'])
+            print(f"Tuned Prompt: {tuned_prompt[:100]}...")
+            
             image_path = os.path.join(assets_dir, "scene.png")
             
             # Use existing image path if available in segments
@@ -152,7 +288,7 @@ def main():
                 from video_generation_tool import constants
                 success = utils.generate_image_with_retry(
                     client, 
-                    image_prompt, 
+                    tuned_prompt, 
                     image_path, 
                     model=constants.GEMINI_IMAGE_ADVANCED_MODEL
                 )
@@ -165,11 +301,11 @@ def main():
             # 2. Select Sounds
             print("Step 2: Selecting Sounds...")
             
-            # Use existing sounds if available in segments
-            if "selected_sounds" in existing_segments:
-                selected_sounds = existing_segments["selected_sounds"]
-                print(f"Using {len(selected_sounds)} existing sounds from segments.json")
+            # Use existing sounds if available (either from segments.json or just generated)
+            if selected_sounds:
+                print(f"Using {len(selected_sounds)} pre-selected sounds.")
             else:
+                print("No pre-selected sounds found. Running fallback selection...")
                 available_sounds = list_available_sounds(sound_dir)
                 selected_sounds = select_sounds(client, video['scene_description'], available_sounds)
                 
@@ -186,7 +322,8 @@ def main():
                 "image_path": image_path,
                 "selected_sounds": selected_sounds,
                 "scene_description": video['scene_description'],
-                "art_style": video['art_style']
+                "art_style": video['art_style'],
+                "tuned_prompt": tuned_prompt
             }
             with open(segments_path, 'w') as f:
                 json.dump(segments_data, f, indent=4)
@@ -197,9 +334,6 @@ def main():
             duration_sec = video['duration_minutes'] * 60
             
             # For testing/dev, limit duration to 30 seconds if not explicitly prod
-            # BUT user requested 30 mins. I will respect the json but maybe warn.
-            # Actually, generating 30 mins of video takes a LONG time and disk space.
-            # I'll stick to the requested duration but add a dev override if needed.
             if args.mode == "dev":
                 print("Dev mode: Limiting duration to 30 seconds.")
                 duration_sec = 30
@@ -233,7 +367,6 @@ def main():
                     codec="libx264", 
                     audio_codec="aac", 
                     audio_bitrate="320k",
-                    preset="veryslow",
                     ffmpeg_params=["-crf", "28"] # Higher CRF = lower quality/size. 28 is decent for static image.
                 )
                 
@@ -243,7 +376,7 @@ def main():
                 metadata = metadata_generator.generate_metadata(
                     script=f"Relaxing white noise video. Scene: {video['scene_description']}",
                     topic=video['topic'],
-                    extra_requirements=f"Include '{video['duration_minutes']} Minutes' and 'White Noise Relax Video' in the title. Focus on relaxation, sleep, focus, and white noise keywords.",
+                    extra_requirements=f"STRICTLY START the title with 'X duration White Noise'. Example: '30 Minutes White Noise Relax Video - {video['topic']}'.",
                     default_tags=["white noise", "relax", "sleep", "focus", "ambient", "study", "meditation"],
                     default_description=f"Relaxing white noise video: {video['topic']}. Perfect for sleep, study, and focus."
                 )
@@ -259,6 +392,8 @@ def main():
                     youtube_tags=metadata.get("tags", [])
                 )
                 print(f"Video status and metadata updated for video {video['index']}")
+                
+                processed_count += 1
                 
             except Exception as e:
                 print(f"Error creating video: {e}")

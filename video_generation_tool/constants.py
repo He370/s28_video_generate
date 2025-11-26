@@ -16,7 +16,7 @@ GEMINI_TEXT_MODEL = "gemini-2.5-flash"
 # GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
 # GEMINI_TEXT_MODEL = "gemini-2.5-flash-preview-09-2025"
 # GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite-preview-09-2025"
-# GEMINI_TEXT_MODEL = "gemini-3-pro-preview"
+GEMINI_TEXT_ADVANCED_MODEL = "gemini-3-pro-preview"
 
 # Image Models Selection
 # GEMINI_IMAGE_MODEL = "gemini-2.0-flash-exp-image-generation"

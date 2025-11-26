@@ -169,17 +169,19 @@ class GeminiClient:
             print(f"Error generating image: {e}")
             raise e
 
-    def generate_text(self, prompt: str, response_mime_type: str = "text/plain") -> str:
+    def generate_text(self, prompt: str, response_mime_type: str = "text/plain", model: Optional[str] = None) -> str:
         """
         Generates text content using Gemini.
         """
         from .constants import GEMINI_TEXT_MODEL
 
+        target_model = model if model else GEMINI_TEXT_MODEL
+
         try:
             time.sleep(self.delay)
             config = types.GenerateContentConfig(response_mime_type=response_mime_type)
             response = self.client.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
+                model=target_model,
                 contents=prompt,
                 config=config
             )
