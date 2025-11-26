@@ -107,6 +107,16 @@ def main():
         notifier = EmailNotifier(config_path=os.path.join(base_dir, "config.json"))
         notifier.send_error_alert(args.project, output)
         sys.exit(1)
+    elif uploaded:
+        print("Sending success notification...")
+        upload_count = output.count("marked as uploaded")
+        notifier = EmailNotifier(config_path=os.path.join(base_dir, "config.json"))
+        notifier.send_upload_notification(
+            project_name=args.project,
+            start_time=start_time.strftime('%Y-%m-%d %H:%M:%S'),
+            duration=str(duration).split('.')[0],
+            upload_count=upload_count
+        )
 
 if __name__ == "__main__":
     main()

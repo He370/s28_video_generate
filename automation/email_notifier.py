@@ -65,6 +65,52 @@ class EmailNotifier:
         except Exception as e:
             print(f"Failed to send email: {e}")
 
+    def send_upload_notification(self, project_name, start_time, duration, upload_count):
+        """Sends an email notification about successful uploads."""
+        # Use success_email config if available, otherwise fall back to default email config
+        email_config = self.config.get("success_email", self.config.get("email", {}))
+        
+        sender_email = email_config.get("sender_email")
+        sender_password = email_config.get("sender_password")
+        recipient_email = email_config.get("recipient_email", "ldh.sjtu@gmail.com")
+        smtp_server = email_config.get("smtp_server", "smtp.gmail.com")
+        smtp_port = email_config.get("smtp_port", 587)
+
+        if not sender_email or not sender_password:
+            print("Error: Email credentials not found in config.json. Skipping email notification.")
+            return
+
+        subject = f"✅ UPLOADED: {project_name} ({upload_count} videos)"
+        body = f"""
+        Automation job for project '{project_name}' completed successfully.
+        
+        Job Information:
+        ----------------------------------------
+        Project Name: {project_name}
+        Job Started: {start_time}
+        Process Duration: {duration}
+        Videos Uploaded: {upload_count}
+        ----------------------------------------
+        
+        """
+
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            text = msg.as_string()
+            server.sendmail(sender_email, recipient_email, text)
+            server.quit()
+            print(f"Success notification email sent to {recipient_email}")
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+
 if __name__ == "__main__":
     # Test
     notifier = EmailNotifier()

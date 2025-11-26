@@ -5,5 +5,12 @@
         "recipient_email": "ldh.sjtu+alert@gmail.com",
         "smtp_server": "smtp.gmail.com",
         "smtp_port": 587
+    },
+    "success_email": {
+        "sender_email": "ldh.sjtu+success@gmail.com",
+        "sender_password": "joeo sowq wkvl srug",
+        "recipient_email": "ldh.sjtu+success@gmail.com",
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587
     }
 }
