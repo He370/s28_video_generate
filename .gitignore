@@ -48,6 +48,7 @@ tmp/
 videos.json
 client_secrets*.json
 debug_log*.txt
+*.pickle
 
 # Exceptions (Keep these files)
 !audio_generater/extracted_sounds/*.mp3
