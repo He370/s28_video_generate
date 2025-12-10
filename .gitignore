@@ -43,6 +43,7 @@ projects/*/output/
 *.jpg
 *.jpeg
 *.wav
+*.log
 temp/
 tmp/
 videos.json

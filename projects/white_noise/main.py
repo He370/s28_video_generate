@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import random
+import datetime
 from typing import List, Dict, Tuple
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_audioclips
 from moviepy.audio.fx import AudioFadeIn, AudioFadeOut
@@ -27,44 +28,141 @@ def list_available_sounds(sound_dir: str) -> List[str]:
                 sound_files.append(rel_path)
     return sound_files
 
-def generate_concept_and_select_sounds(client: GeminiClient, available_sounds: List[str]) -> Dict:
+    return sound_files
+
+def get_used_combinations(output_dir: str, videos_json_path: str, target_duration: int) -> Tuple[Dict[str, int], Dict[str, int]]:
     """
-    Generate a video concept AND select sounds in a single call.
-    Uses the advanced model for better reasoning.
+    Scans output directory for existing segments.json files and returns counts
+    of used topics and sounds, filtered by the target duration.
+    """
+    topic_counts = {}
+    sound_counts = {}
+    
+    if not os.path.exists(output_dir):
+        return {}, {}
+
+    # Load videos.json to get topics and durations
+    index_map = {} # index -> {topic, duration}
+    try:
+        with open(videos_json_path, 'r') as f:
+            videos_data = json.load(f)
+            for v in videos_data:
+                idx = v.get('index')
+                if idx is not None:
+                    index_map[idx] = {
+                        'topic': v.get('topic', 'Unknown Topic'),
+                        'duration': v.get('duration_minutes', 60)
+                    }
+    except Exception:
+        pass
+
+    # Iterate over video_* directories
+    subdirs = [d for d in os.listdir(output_dir) if d.startswith("video_") and os.path.isdir(os.path.join(output_dir, d))]
+    
+    for item in subdirs:
+        try:
+            # Extract index from folder name "video_123"
+            idx_str = item.split("_")[1]
+            idx = int(idx_str)
+            video_info = index_map.get(idx)
+            
+            # If we can't find info, or duration doesn't match, skip
+            # We only want to count usage for the SAME duration.
+            if not video_info or video_info['duration'] != target_duration:
+                continue
+                
+            topic = video_info['topic']
+            if topic and topic != "Pending Generation":
+                topic_counts[topic] = topic_counts.get(topic, 0) + 1
+                
+        except (IndexError, ValueError):
+            continue
+
+        segments_path = os.path.join(output_dir, item, "assets", "segments.json")
+        if os.path.exists(segments_path):
+            try:
+                with open(segments_path, 'r') as f:
+                    data = json.load(f)
+                    sounds = [s.get("filename", "") for s in data.get("selected_sounds", [])]
+                    for s in sounds:
+                        if s:
+                            sound_counts[s] = sound_counts.get(s, 0) + 1
+            except Exception:
+                continue
+                    
+    return topic_counts, sound_counts
+
+def generate_concept_and_select_sounds(client: GeminiClient, available_sounds: List[str], topic_counts: Dict[str, int], sound_counts: Dict[str, int]) -> Dict:
+    """
+    Generate multiple video concepts and select the best one based on soft limits.
     """
     
-    # Limit sound list if too long
-    sound_list_str = "\n".join(available_sounds[:150]) # Increased limit slightly for advanced model
+    # Format sound list with usage counts
+    formatted_sounds = []
+    # Sort by usage count (ascending) to encourage using less used sounds
+    # But we also want to keep some randomness or alphabetical order so it's not always the same top list?
+    # Actually, just sorting by count is good guidance for the LLM.
+    
+    # Create a list of (sound, count)
+    sound_usage = [(s, sound_counts.get(s, 0)) for s in available_sounds]
+    # Sort by count
+    sound_usage.sort(key=lambda x: x[1])
+    
+    # Take top 150 least used sounds to keep prompt small, or just all if not too many?
+    # The original code limited to 150. Let's keep that limit but prioritize least used.
+    
+    for sound, count in sound_usage[:150]:
+        formatted_sounds.append(f"{sound} (Used {count} times)")
+        
+    sound_list_str = "\n".join(formatted_sounds)
     
     prompt = f"""
-    I have a library of sound effects and I need to create a "White Noise" video concept based on them.
+    I have a library of sound effects and I need to create "White Noise" video concepts based on them.
     
-    Available Sound Effects:
+    Available Sound Effects (with usage counts):
     {sound_list_str}
     
     Task:
-    1. Analyze the sounds and come up with a cohesive and attractive theme/scene (e.g., "Rainy Cafe", "Space Station", "Forest Campfire").
-    2. Create a short Title (Topic).
-    3. Write a detailed Scene Description for visual generation.
-    4. Define an Art Style.
-    5. Select 2 to 4 sound effects from the list that best match the scene.
-    6. Assign a volume level (0.1 to 1.0) for each sound to create a balanced mix. Background ambience should be louder (0.6-0.8), subtle accents should be quieter (0.1-0.3).
+    1. Analyze the sounds and come up with 5 UNIQUE and DISTINCT themes/scenes (e.g., "Rainy Cafe", "Space Station", "Forest Campfire").
+    2. For each concept:
+       - Create a short Title (Topic).
+       - Write a detailed Scene Description.
+       - Define an Art Style.
+       - Select 2 to 4 sound effects.
+       - Assign volumes (0.1-1.0).
     
-    Output strictly in JSON format:
-    {{
-        "topic": "Short Title",
-        "scene_description": "Detailed visual description...",
-        "art_style": "Art style description...",
-        "selected_sounds": [
-            {{
-                "filename": "relative/path/to/sound.mp3",
-                "volume": 0.5
-            }},
-            ...
-        ]
-    }}
+    Guidelines:
+    - PREFER sounds that have been used fewer times (0 or low counts).
+    - AVOID sounds that have been used > 5 times unless absolutely critical for the scene.
+    - Ensure the 5 concepts are different from each other.
+    
+    Output strictly in JSON format as a LIST of objects:
+    [
+        {{
+            "topic": "Short Title",
+            "scene_description": "Detailed visual description...",
+            "art_style": "Art style description...",
+            "selected_sounds": [
+                {{
+                    "filename": "relative/path/to/sound.mp3",
+                    "volume": 0.5
+                }},
+                ...
+            ]
+        }},
+        ...
+    ]
     """
     
+    # Log the prompt
+    try:
+        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompt.log")
+        with open(log_path, "a") as f:
+            f.write(f"\n\n{'='*20} PROMPT {datetime.datetime.now()} {'='*20}\n")
+            f.write(prompt)
+    except Exception as e:
+        print(f"Failed to log prompt: {e}")
+
     try:
         # Use the advanced model
         response = client.generate_text(
@@ -72,19 +170,56 @@ def generate_concept_and_select_sounds(client: GeminiClient, available_sounds: L
             response_mime_type="application/json",
             model=GEMINI_TEXT_ADVANCED_MODEL
         )
-        result = json.loads(response)
+        candidates = json.loads(response)
         
-        # Validate sounds
-        valid_sounds = []
-        if "selected_sounds" in result:
-            for item in result["selected_sounds"]:
-                if item['filename'] in available_sounds:
-                    valid_sounds.append(item)
-                else:
-                    print(f"Warning: Gemini selected non-existent file: {item['filename']}")
-            result["selected_sounds"] = valid_sounds
+        if not isinstance(candidates, list):
+            candidates = [candidates] # Handle case where it returns single object
             
-        return result
+        print(f"Generated {len(candidates)} candidates. Validating against soft limits...")
+        
+        best_candidate = None
+        lowest_usage_score = float('inf')
+        
+        for cand in candidates:
+            topic = cand.get("topic", "Unknown")
+            sounds = [s.get("filename") for s in cand.get("selected_sounds", [])]
+            
+            # Validate sounds exist
+            valid_sounds = [s for s in sounds if s in available_sounds]
+            if len(valid_sounds) != len(sounds):
+                # Skip if it hallucinates sounds
+                continue
+                
+            # Check Soft Limits
+            topic_usage = topic_counts.get(topic, 0)
+            
+            # Sound usage score: max usage of any single sound in the mix
+            current_sound_usages = [sound_counts.get(s, 0) for s in valid_sounds]
+            max_sound_usage = max(current_sound_usages) if current_sound_usages else 0
+            
+            print(f"  - Candidate '{topic}': Topic Used {topic_usage}, Max Sound Used {max_sound_usage}")
+            
+            # Strict Pass Condition: Topic < 2 AND Max Sound Usage < 5
+            if topic_usage < 2 and max_sound_usage < 5:
+                print(f"    -> SELECTED (Passes soft limits)")
+                cand["selected_sounds"] = [s for s in cand["selected_sounds"] if s["filename"] in available_sounds]
+                return cand
+            
+            # Fallback Score: We want to minimize this
+            # Weighted score: Topic usage is bad, High sound usage is bad
+            score = (topic_usage * 10) + max_sound_usage
+            
+            if score < lowest_usage_score:
+                lowest_usage_score = score
+                best_candidate = cand
+        
+        if best_candidate:
+            print(f"    -> SELECTED FALLBACK (Score {lowest_usage_score})")
+            best_candidate["selected_sounds"] = [s for s in best_candidate["selected_sounds"] if s["filename"] in available_sounds]
+            return best_candidate
+            
+        return {}
+            
     except Exception as e:
         print(f"Error generating concept and sounds: {e}")
         return {}
@@ -242,8 +377,12 @@ def main():
                     print("No sounds available to generate concept. Skipping.")
                     continue
                     
+                # Get used combinations (counts) to avoid duplicates for THIS duration
+                # We allow reusing topics/sounds if the duration is different (e.g. 30min vs 3h)
+                topic_counts, sound_counts = get_used_combinations(output_dir, videos_json_path, video.get('duration_minutes', 60))
+                
                 # Use the combined function
-                concept_result = generate_concept_and_select_sounds(client, available_sounds)
+                concept_result = generate_concept_and_select_sounds(client, available_sounds, topic_counts, sound_counts)
                 if not concept_result:
                     print("Failed to generate concept. Skipping.")
                     continue
@@ -364,7 +503,7 @@ def main():
                     continue
                     
                 final_audio = CompositeAudioClip(audio_clips)
-                final_audio = final_audio.with_volume_scaled(0.5)
+                final_audio = final_audio.with_volume_scaled(0.4)
                 
                 # Create Video
                 video_clip = ImageClip(image_path).with_duration(duration_sec)
@@ -392,6 +531,10 @@ def main():
                     duration_str = "3 Hours"
                 elif duration_mins == 120:
                     duration_str = "2 Hours"
+                elif duration_mins == 480:
+                    duration_str = "8 Hours"
+                elif duration_mins == 600:
+                    duration_str = "10 Hours"
                 else:
                     duration_str = f"{duration_mins} Minutes"
 
