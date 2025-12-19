@@ -53,7 +53,7 @@ def get_pending_videos(videos: List[Dict], count: int) -> List[Dict]:
     Returns:
         List of pending video items (up to count).
     """
-    pending = [v for v in videos if v.get('status') == 'pending']
+    pending = [v for v in videos if v.get('status') in ['pending']]
     return pending[:count]
 
 def update_video_status(json_path: str, index: int, status: str, **kwargs) -> bool:
