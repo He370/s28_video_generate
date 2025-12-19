@@ -1,7 +1,8 @@
 # Gemini API Models
 # Text Models Selection
 # GEMINI_TEXT_MODEL = "gemini-2.5-pro-preview-03-25"
-GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+# GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+GEMINI_TEXT_MODEL = "gemini-3-flash-preview"
 # GEMINI_TEXT_MODEL = "gemini-2.5-pro-preview-05-06"
 # GEMINI_TEXT_MODEL = "gemini-2.5-pro-preview-06-05"
 # GEMINI_TEXT_MODEL = "gemini-2.5-pro"
