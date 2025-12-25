@@ -21,11 +21,11 @@ class AudioGenerator:
         
         # Select voice based on language and mode
         voice_config = self.VOICE_MAPPING.get(language, self.VOICE_MAPPING["English"])
+        
         self.edge_voice = voice_config["edge"]
-        # Use provided voice_name if available, otherwise default to language mapping
         self.gemini_voice = voice_name if voice_name else voice_config["gemini"]
         
-        # Set prompt prefix
+        # Set prompt prefix (default is generic, can be overridden)
         self.prompt_prefix = prompt_prefix if prompt_prefix else "Please read the following text at a regular and moderate speaking pace suitable for a documentary narration: "
         
         # Initialize Gemini client for prod mode
@@ -89,6 +89,7 @@ class AudioGenerator:
         Routes to edge-tts (dev) or Gemini API (prod) based on mode.
         """
         if self.mode == "prod":
+            # Gemini use prompt_prefix for pacing.
             self.generate_audio_gemini(text, output_file)
         else:
             asyncio.run(self.generate_audio(text, output_file))

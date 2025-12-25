@@ -32,6 +32,16 @@ def main():
         print("No videos found in queue.")
         return
 
+    # Load project metadata for playlists (if applicable)
+    playlist_metadata = {}
+    metadata_path = os.path.join(project_dir, "playlist.json")
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, 'r') as f:
+                playlist_metadata = json.load(f)
+        except Exception as e:
+            print(f"Error loading playlist.json: {e}")
+
     # Find generated videos to upload
     to_upload = []
     for video in videos:
@@ -98,7 +108,8 @@ def main():
                 title=title,
                 description=description,
                 privacy_status=args.privacy,
-                tags=tags
+                tags=tags,
+                made_for_kids=(args.project_name == 'classic_fairy_tale')
             )
             
             if response:
@@ -132,6 +143,16 @@ def main():
                         print(f"No thumbnail found at {thumbnail_path}, skipping.")
                 except Exception as thumb_e:
                     print(f"Warning: Failed to upload thumbnail: {thumb_e}")
+                    
+                # Add to playlist if mapped
+                playlist_name = video.get('playlist_name')
+                if playlist_name and playlist_name in playlist_metadata:
+                    playlist_id = playlist_metadata[playlist_name]
+                    if playlist_id:
+                        print(f"Adding to playlist for '{playlist_name}'...")
+                        uploader.add_video_to_playlist(playlist_id, response.get('id'))
+                    else:
+                        print(f"No playlist ID configured for '{playlist_name}'. Skipping playlist add.")
             
         except Exception as e:
             print(f"✗ Failed to upload video {video_index}: {e}")

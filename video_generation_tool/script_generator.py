@@ -6,7 +6,7 @@ class ScriptGenerator:
     def __init__(self, client: GeminiClient):
         self.client = client
 
-    def generate_script(self, context: str, language: str, category: str, word_limit: int) -> str:
+    def generate_script(self, context: str, language: str, category: str, word_limit: int = None) -> str:
         """
         Generates a video script based on the provided parameters.
         
@@ -19,13 +19,16 @@ class ScriptGenerator:
         Returns:
             A string containing the generated script.
         """
+        
+        limit_text = f"Word Limit: Approximately {word_limit} words." if word_limit else "Length: Appropriate for the content provided."
+        
         prompt = f"""
         You are a creative scriptwriter. Write a video script for the following request:
         
         Context/Topic: {context}
         Language: {language}
         Category: {category}
-        Word Limit: Approximately {word_limit} words.
+        {limit_text}
         
         The script should be engaging and suitable for a video narration (TTS). 
         IMPORTANT: 
@@ -95,4 +98,61 @@ class ScriptGenerator:
             result.append(item)
         
         return result if result else [{"text": script_text, "image_prompt": "A generic image representing the script."}]
+
+    def generate_storyboard(self, original_text: str, context: str = "") -> List[Dict[str, str]]:
+        """
+        Generates a storyboard script directly from the original text.
+        
+        Args:
+            original_text: The original story text.
+            context: Additional context or instructions (e.g. "classic fairy tale").
+            
+        Returns:
+            A list of dictionary objects acting as scenes, with 'visual_idea' and 'voiceover'.
+        """
+        prompt = f"""
+        Please act as a professional fairy tale picture book director. Break down the following original text of the story into a storyboard script suitable for video production.
+        
+        Original Story Text:
+        {original_text}
+        
+        Context/Instructions:
+        {context}
+        
+        Output Requirements:
+        - Output STRICTLY in JSON format as a list of objects.
+        - Each object must represent a scene.
+        - Each scene must have:
+            "visual_idea": A detailed description of the visual scene.
+            "voiceover": The specific text to be read by the narrator for this scene.
+        
+        Example JSON Structure:
+        [
+            {{
+                "visual_idea": "A dark forest with twisted trees...",
+                "voiceover": "Once upon a time, in a deep dark forest..."
+            }},
+            ...
+        ]
+        """
+        
+        print(f"Generating storyboard from original text ({len(original_text)} chars)...")
+        response_text = self.client.generate_text(prompt, response_mime_type="application/json")
+        
+        try:
+            scenes = json.loads(response_text)
+            # Validate output structure
+            if isinstance(scenes, list) and all(isinstance(s, dict) for s in scenes):
+                return scenes
+            else:
+                print("Warning: Gemini returned valid JSON but not a list of dicts.")
+                # Fallback attempt to wrap or fix if it returned a single object?
+                # For now, let's just return what we have if it's a list, or error out
+                if isinstance(scenes, dict):
+                    return [scenes]
+                return []
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON storyboard response: {response_text}")
+            return []
+
 

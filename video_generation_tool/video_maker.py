@@ -6,17 +6,35 @@ class VideoMaker:
     def __init__(self, output_file: str = "history_video.mp4"):
         self.output_file = output_file
 
-    def create_video(self, segments: list, enable_ken_burns: bool = False, bgm_file: str = None, bgm_volume: float = 0.1):
+    def create_video(self, segments: list, enable_ken_burns: bool = False, bgm_file: str = None, bgm_volume: float = 0.1, padding_config: dict = None):
         """
         Combines segments into a final video.
         Each segment is a dict: {'image': path, 'audio': path, 'text': str}
+        padding_config: Dict mapping index (int) or 'default' to padding seconds. 
+                       Supports negative indices (e.g., -1 for last).
         """
         clips = []
         
-        for segment in segments:
+        # Check explicit padding for start/end if passed, or use defaults
+        # Example usage: {0: 2.0, -1: 3.0, 'default': 0.5}
+        pad_conf = padding_config if padding_config else {}
+        default_padding = pad_conf.get('default', 0.5)
+        
+        for i, segment in enumerate(segments):
             # Load Audio
             audio_clip = AudioFileClip(segment['audio'])
-            duration = audio_clip.duration + 0.5 # Add a little pause
+            
+            # Determine padding
+            # Check explicit index
+            if i in pad_conf:
+                padding = pad_conf[i]
+            # Check negative index logic (last element)
+            elif (i - len(segments)) in pad_conf:
+                 padding = pad_conf[i - len(segments)]
+            else:
+                 padding = default_padding
+                
+            duration = audio_clip.duration + padding
             
             # Load Image
             image_clip = ImageClip(segment['image']).with_duration(duration)

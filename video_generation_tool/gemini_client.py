@@ -50,13 +50,15 @@ class GeminiClient:
     # For now, I will implement a placeholder that saves a dummy image or uses a public placeholder if API fails.
     # In a real scenario with access, we would use the appropriate method.
     
-    def generate_image(self, prompt: str, output_path: str, model: Optional[str] = None):
+    def generate_image(self, prompt: str, output_path: str, model: Optional[str] = None, reference_image_path: Optional[str] = None):
         """
         Generates an image using Gemini/Imagen (via new google-genai SDK).
         Supports both Imagen (generate_images) and Gemini (generate_content) models.
         """
         if self.mode == "dev":
             print(f"DEV MODE: Generating dummy image for prompt: {prompt}")
+            if reference_image_path:
+                print(f"DEV MODE: Using reference image: {reference_image_path}")
             try:
                 # Create a dummy image with text
                 width, height = 1920, 1080
@@ -133,9 +135,20 @@ class GeminiClient:
 
             # Fallback or default for Gemini models: generate_content
             print(f"Attempting generate_content with {target_model}...")
+            
+            contents = [prompt]
+            if reference_image_path and os.path.exists(reference_image_path):
+                print(f"Using reference image: {reference_image_path}")
+                try:
+                    # Load reference image using PIL
+                    ref_img = Image.open(reference_image_path)
+                    contents.append(ref_img)
+                except Exception as e:
+                    print(f"Failed to load reference image: {e}")
+            
             response = self.client.models.generate_content(
                 model=target_model,
-                contents=prompt,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     image_config=types.ImageConfig(
                         aspect_ratio="16:9",

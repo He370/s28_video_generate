@@ -34,7 +34,8 @@ class YouTubeUploader:
     def __init__(self, client_secrets_file="client_secrets.json", token_file="token.pickle"):
         self.client_secrets_file = client_secrets_file
         self.token_file = token_file
-        self.scopes = ["https://www.googleapis.com/auth/youtube.upload"]
+        # Updated scope to allow playlist modification
+        self.scopes = ["https://www.googleapis.com/auth/youtube", "https://www.googleapis.com/auth/youtube.upload"]
         self.api_service_name = "youtube"
         self.api_version = "v3"
         self.youtube = None
@@ -80,7 +81,7 @@ class YouTubeUploader:
         self.youtube = build(self.api_service_name, self.api_version, credentials=credentials)
         print("Authentication successful.")
 
-    def upload_video(self, file_path, title, description, category_id="22", privacy_status="private", tags=None):
+    def upload_video(self, file_path, title, description, category_id="22", privacy_status="private", tags=None, made_for_kids=False):
         """
         Uploads a video to YouTube with robust error handling and retries.
         """
@@ -106,7 +107,7 @@ class YouTubeUploader:
             },
             'status': {
                 'privacyStatus': privacy_status,
-                'selfDeclaredMadeForKids': False
+                'selfDeclaredMadeForKids': made_for_kids
             }
         }
 
@@ -183,6 +184,34 @@ class YouTubeUploader:
                 sleep_seconds = random.random() * max_sleep
                 print(f"Sleeping {sleep_seconds} seconds and then retrying...")
                 time.sleep(sleep_seconds)
+
+    def add_video_to_playlist(self, playlist_id, video_id):
+        """
+        Adds a video to a specific playlist.
+        """
+        if not self.youtube:
+             raise ValueError("Not authenticated. Call authenticate() first.")
+             
+        try:
+            print(f"Adding video {video_id} to playlist {playlist_id}...")
+            request = self.youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": video_id
+                        }
+                    }
+                }
+            )
+            response = request.execute()
+            print(f"Successfully added to playlist.")
+            return response
+        except Exception as e:
+            print(f"Error adding to playlist: {e}")
+            return None
 
 if __name__ == "__main__":
     # Example usage

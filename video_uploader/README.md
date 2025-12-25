@@ -52,6 +52,7 @@ venv/bin/python video_uploader/refresh_credentials.py --force
 venv/bin/python video_uploader/refresh_credentials.py --profile default --force
 venv/bin/python video_uploader/refresh_credentials.py --profile horror --force
 venv/bin/python video_uploader/refresh_credentials.py --profile relax --force
+venv/bin/python video_uploader/refresh_credentials.py --profile tale --force
 ```
 
 See [CREDENTIALS_GUIDE.md](CREDENTIALS_GUIDE.md) for more details on managing multiple accounts.

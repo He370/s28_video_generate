@@ -35,7 +35,7 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def generate_image_with_retry(client, image_prompt, output_path, max_retries=3, max_times_gen_new_prompt=1, model=None):
+def generate_image_with_retry(client, image_prompt, output_path, max_retries=3, max_times_gen_new_prompt=1, model=None, reference_image_path=None):
     """
     Tries to generate an image with retries.
     If generation fails, it can try to generate a new prompt using the Gemini client.
@@ -47,7 +47,7 @@ def generate_image_with_retry(client, image_prompt, output_path, max_retries=3, 
     
     for attempt in range(max_retries):
         try:
-            client.generate_image(current_prompt, output_path, model=model)
+            client.generate_image(current_prompt, output_path, model=model, reference_image_path=reference_image_path)
             return True
         except Exception as e:
             print(f"  Error generating image (attempt {attempt+1}/{max_retries}): {e}")
