@@ -203,3 +203,73 @@ class GeminiClient:
             print(f"Error generating text: {e}")
             return ""
 
+    def generate_video(self, prompt: str, output_path: str, model: Optional[str] = None, image_path: Optional[str] = None) -> None:
+        """
+        Generates a video using Gemini (Veo).
+        """
+        from .constants import GEMINI_VIDEO_MODEL
+        target_model = model if model else GEMINI_VIDEO_MODEL
+
+        print(f"Generating video with model: {target_model}")
+        print(f"Prompt: {prompt}")
+
+        if self.mode == "dev":
+            print(f"DEV MODE: Generating dummy video for prompt: {prompt}")
+            import subprocess
+            try:
+                 # Create a dummy image first
+                 dummy_img = "dummy_frame.png"
+                 Image.new('RGB', (1280, 720), color = 'red').save(dummy_img)
+                 subprocess.run([
+                     "ffmpeg", "-y", "-loop", "1", "-i", dummy_img, "-c:v", "libx264", "-t", "4", "-pix_fmt", "yuv420p", output_path
+                 ], check=True)
+                 os.remove(dummy_img)
+                 print(f"Dummy video created at {output_path}")
+                 return
+            except Exception as ffmpeg_e:
+                print(f"Failed to create dummy video: {ffmpeg_e}")
+                return
+
+        try:
+            time.sleep(self.delay)
+            
+            if image_path and os.path.exists(image_path):
+                print(f"Using reference image for video: {image_path}")
+                img = Image.open(image_path)
+                # To encourage looping, we provide the image as both start and end context if possible.
+                # Common pattern for looping with Veo/Imagen 2 Video is [image, prompt, image] or similar.
+                contents = [img, prompt, img]
+            else:
+                contents = [prompt]
+            
+            print("Calling client.models.generate_content for video...")
+            
+            # Veo 3.1 uses generate_content just like other models in the unified SDK
+            # Attempting without response_mime_type as it caused an error for non-text types.
+            
+            response = self.client.models.generate_content(
+                model=target_model,
+                contents=contents
+            )
+            
+            # Extract video data
+            video_saved = False
+            if hasattr(response, 'candidates') and response.candidates:
+                parts = response.candidates[0].content.parts
+                for part in parts:
+                    if hasattr(part, "inline_data") and part.inline_data:
+                         # Check mime type if available, but usually it's the video
+                         if part.inline_data.mime_type.startswith("video/") or True:
+                            with open(output_path, "wb") as f:
+                                f.write(part.inline_data.data)
+                            print(f"Video saved to {output_path}")
+                            video_saved = True
+                            break
+            
+            if not video_saved:
+                print(f"No video found in response: {response}")
+                raise ValueError("No video returned in response")
+
+        except Exception as e:
+            print(f"Error generating video: {e}")
+            raise e

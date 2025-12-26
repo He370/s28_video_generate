@@ -33,18 +33,8 @@ Create or update `automation/config.json` with your email credentials:
 Ensure the workflow scripts are executable:
 
 ```bash
-chmod +x automation/workflows/history_story_daily.sh
-chmod +x automation/workflows/history_story_what_if.sh
-chmod +x automation/workflows/history_story_mystery.sh
-chmod +x automation/workflows/today_history_daily.sh
-chmod +x automation/workflows/horror_story_daily.sh
-chmod +x automation/workflows/horror_story_reprocess.sh
-chmod +x automation/workflows/white_noise_daily.sh
-chmod +x automation/workflows/white_noise_30m.sh
-chmod +x automation/workflows/white_noise_1h.sh
-chmod +x automation/workflows/white_noise_3h.sh
-chmod +x automation/workflows/white_noise_8h.sh
-chmod +x automation/workflows/white_noise_10h.sh
+chmod +x automation/workflows/*.sh
+chmod +x automation/schedules/*.sh
 ```
 
 ## Mac Cron Setup
@@ -57,34 +47,34 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
     ```
 
 2.  **Add Schedule Entries**:
-    Add the following lines to schedule the jobs. This example runs `today_history` at 8:00 AM and `history_story` at 8:00 PM daily.
-
-    **Important**: You must provide the full path to `python3` and the project directory.
+    Add the following lines to schedule the jobs.
+    
+    **Important**: You must provide the full path to the scripts.
 
     ```bash
-# Horror Story 1 - Daily at 2:00 AM
-0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project horror_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/horror_story_daily.sh"
+# 02:00 AM - Nightly Schedule (Horror Story)
+0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0200_schedule.sh
 
-# Horror Story 2 - Daily at 4:00 AM
-0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project horror_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/horror_story_daily.sh"
+# 04:00 AM - Nightly Schedule (Music Videos)
+0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0400_schedule.sh
 
-# History Story (What If) - Daily at 6:00 AM
-0 6 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_what_if.sh"
+# 06:00 AM - History Story (What If)
+0 6 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0600_schedule.sh
 
-# White Noise (1h) - Daily at 11:30 AM
-30 11 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project white_noise --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/white_noise_1h.sh"
+# 10:00 AM - White Noise (1h)
+0 10 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1000_schedule.sh
 
-# Today History - Daily at 12:00 PM
-0 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project today_history --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/today_history_daily.sh"
+# 12:00 PM - Today History
+0 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1200_schedule.sh
 
-# History Story (Mystery) - Daily at 2:00 PM
-0 14 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_mystery.sh"
+# 02:00 PM - History Story (Mystery)
+0 14 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1400_schedule.sh
 
-# White Noise (8h) - Daily at 4:00 PM
-0 16 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project white_noise --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/white_noise_8h.sh"
+# 04:00 PM - White Noise (8h)
+0 16 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1600_schedule.sh
 
-# White Noise (3h) - Daily at 6:00 PM
-0 18 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project white_noise --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/white_noise_3h.sh"
+# 06:00 PM - White Noise (3h)
+0 18 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1800_schedule.sh
     ```
 
     *Note: We use the virtual environment's python executable to ensure all dependencies are available.*

@@ -103,12 +103,19 @@ def main():
 
         try:
             print(f"\nUploading Video {video_index}...")
+            
+            # Determine category ID
+            category_id = "22" # Default: People & Blogs
+            if args.project_name == "music_video":
+                category_id = "10" # Music
+            
             response = uploader.upload_video(
                 file_path=video_path,
                 title=title,
                 description=description,
                 privacy_status=args.privacy,
                 tags=tags,
+                category_id=category_id,
                 made_for_kids=(args.project_name == 'classic_fairy_tale')
             )
             
@@ -123,8 +130,8 @@ def main():
                 )
                 print(f"✓ Video {video_index} marked as uploaded.")
                 
-                # Delete video file if project is white_noise
-                if args.project_name == "white_noise" and os.path.exists(video_path):
+                # Delete video file if project is white_noise or music_video
+                if args.project_name in ["white_noise", "music_video"] and os.path.exists(video_path):
                     try:
                         os.remove(video_path)
                         print(f"Deleted video file: {video_path}")

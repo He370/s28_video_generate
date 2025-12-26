@@ -1,0 +1,106 @@
+import os
+import sys
+import json
+import logging
+import time
+
+# Add parent directory to path to import video_generation_tool
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+from video_generation_tool.gemini_client import GeminiClient
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+IDEA_FILE = 'idea.json'
+OUTPUT_VIDEO_FILE = 'visuals_loop.mp4'
+
+
+import subprocess
+
+def generate_video_loop(idea_file: str, output_video_file: str, dev_mode: bool = False, use_veo: bool = False):
+    if not os.path.exists(idea_file):
+        logging.error(f"Idea file {idea_file} not found. Run idea_generator.py first.")
+        return
+
+    with open(idea_file, 'r') as f:
+        idea = json.load(f)
+
+    # Construct video prompt from theme and description
+    video_prompt = f"A relaxing scene of {idea.get('theme', 'nature')}. {idea.get('description', '')}"
+
+    image_path = idea.get('cover_image_path')
+    
+    if not use_veo:
+        logging.info("Video generation using static image loop (Veo disabled).")
+        if not image_path or not os.path.exists(image_path):
+             logging.error("Cover image not found for static video loop.")
+             return
+             
+        # Create static image loop using ffmpeg
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-loop", "1",
+                "-i", image_path,
+                "-vf", "scale=1920:1080",
+                "-c:v", "libx264",
+                "-t", "4",
+                "-pix_fmt", "yuv420p",
+                output_video_file
+            ]
+            subprocess.run(cmd, check=True)
+            logging.info(f"Static video loop created locally at {output_video_file}")
+            return
+        except subprocess.CalledProcessError as e:
+            logging.error(f"FFmpeg static loop generation failed: {e}")
+            return
+
+    # Enhance prompt for looping with Veo
+    # Explicitly instruct to use the image as first and last frame for looping.
+    enhanced_prompt = (
+        f"Using the provided image as the first and last frame, create a seamless 4-second looping video. "
+        f"{video_prompt} "
+        f"The scene should remain mostly static, with only subtle, natural motions (like gentle rain, flowing water, or flickering light) "
+        f"that loop perfectly from start to finish. Cinematic, photorealistic, 4k quality."
+    )
+    
+    video_prompt = enhanced_prompt
+
+    client = GeminiClient(mode="dev" if dev_mode else "prod")
+    
+    # Using Veo model
+    from video_generation_tool.constants import GEMINI_VIDEO_MODEL
+    
+    client.generate_video(
+        prompt=video_prompt,
+        output_path=output_video_file,
+        model=GEMINI_VIDEO_MODEL,
+        image_path=image_path
+    )
+    
+    # Post-process Veo output to ensure 1080p
+    # Veo preview might be 720p or other. We upscale/resize to 1920x1080 to ensure final assembly consistency.
+    try:
+        temp_output = output_video_file + ".temp.mp4"
+        os.rename(output_video_file, temp_output)
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", temp_output,
+            "-vf", "scale=1920:1080",
+            "-c:v", "libx264",
+            "-c:a", "copy",
+            output_video_file
+        ]
+        subprocess.run(cmd, check=True)
+        os.remove(temp_output)
+        logging.info(f"Veo video resized to 1080p at {output_video_file}")
+    except Exception as e:
+        logging.error(f"Failed to resize Veo output: {e}")
+        # Restore original if failed
+        if os.path.exists(temp_output) and not os.path.exists(output_video_file):
+            os.rename(temp_output, output_video_file)
+
+if __name__ == "__main__":
+    generate_video_loop('idea.json', 'visuals_loop.mp4')
+
