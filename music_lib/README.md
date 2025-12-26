@@ -16,10 +16,10 @@ This directory contains scripts and assets for managing the music library used i
 
 ### Ingesting Music
 
-Run the ingestion script to scan `music/assets` and popluate `music.db`.
+Run the ingestion script from the project root (`s28_video_generate/`):
 
 ```bash
-python ingest_music.py
+./venv/bin/python music_lib/ingest_music.py
 ```
 
 The script will:
@@ -36,7 +36,7 @@ You can interact with the `music.db` using the `sqlite3` command-line tool.
 
 **1. Open the database:**
 ```bash
-sqlite3 music.db
+sqlite3 music_lib/music.db
 ```
 
 **2. List all tracks (limit 10):**

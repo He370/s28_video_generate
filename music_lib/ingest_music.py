@@ -7,8 +7,10 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3
 
 # Configuration
-DB_PATH = 'music.db'
-ASSETS_DIR = 'music/assets'
+# Configuration
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'music.db')
+ASSETS_DIR = os.path.join(BASE_DIR, 'music', 'assets')
 
 def setup_db(db_path):
     """Creates the tracks table if it doesn't exist."""
