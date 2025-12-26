@@ -44,6 +44,7 @@ projects/*/output/
 *.jpeg
 *.wav
 *.log
+*.db
 temp/
 tmp/
 videos.json
