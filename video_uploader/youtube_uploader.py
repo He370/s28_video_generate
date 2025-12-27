@@ -69,6 +69,13 @@ class YouTubeUploader:
                 # You must add "http://localhost:8080/" to the "Authorized redirect URIs" in your Google Cloud Console credentials.
                 try:
                     credentials = flow.run_local_server(port=8080)
+                except OSError as e:
+                    if "Address already in use" in str(e) or e.errno == 48:
+                        print("Port 8080 is in use. Trying a random port...")
+                        print("Warning: If authentication fails with 'redirect_uri_mismatch', you must free up port 8080 or add the random port's URI to your Google Cloud Console.")
+                        credentials = flow.run_local_server(port=0)
+                    else:
+                        raise e
                 except KeyboardInterrupt:
                     print("\nAuthentication cancelled by user.")
                     return

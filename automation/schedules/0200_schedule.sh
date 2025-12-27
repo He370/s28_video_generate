@@ -4,8 +4,7 @@
 # This script manages the execution of workflows scheduled for the night/early morning.
 
 # Resolve paths
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+PROJECT_ROOT="/Users/leo/Documents/antigravity/s28_video_generate"
 PYTHON="$PROJECT_ROOT/venv/bin/python"
 RUN_JOB="$PROJECT_ROOT/automation/run_job.py"
 
