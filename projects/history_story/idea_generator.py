@@ -24,13 +24,15 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     if target_type == "all":
         # Randomly pick one type for this batch to keep it focused, or let the model mix.
         # The user requested: "if type is not specified, take it a random type from what_if or mystery"
-        target_type = random.choice(["what_if", "mystery"])
+        target_type = random.choice(["what_if", "mystery", "historical_personage"])
         print(f"Randomly selected type: {target_type}")
 
     if target_type == "what_if":
         type_instruction = 'Focus ONLY on "What If" scenarios (alternate history).'
     elif target_type == "mystery":
         type_instruction = 'Focus ONLY on Ancient Civilization Mysteries.'
+    elif target_type == "historical_personage":
+        type_instruction = 'Focus on the biography of a famous historical figure.'
 
     prompt = f"""
     Generate {count} unique and intriguing video ideas for a "History Story" channel.
@@ -38,7 +40,7 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     
     {type_instruction}
     
-    Ensure the topics are diverse and catchy.
+    Ensure the topics are diverse and catchy, and keep them short and catchy.
     
     Existing topics to AVOID (do not repeat these):
     {existing_summary}
@@ -46,8 +48,8 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     Output strictly in JSON format as a list of objects:
     [
         {{
-            "topic": "The Topic Title",
-            "type": "what_if" or "mystery",
+            "topic": "The Topic Title, the historical personage name, or the historical event name",
+            "type": "what_if", "mystery" or "historical_personage",
             "description": "A brief description of the video concept."
         }},
         ...
@@ -66,7 +68,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate video ideas for History Story project.")
     parser.add_argument("--count", type=int, default=5, help="Number of ideas to generate")
     parser.add_argument("--mode", choices=["prod", "dev"], default="dev", help="Mode: 'prod' or 'dev'")
-    parser.add_argument("--type", choices=["all", "what_if", "mystery"], default="all", help="Type of stories to generate")
+    parser.add_argument("--type", choices=["all", "what_if", "mystery", "historical_personage"], default="all", help="Type of stories to generate")
     parser.add_argument("--language", type=str, default="English", help="Language for the video ideas")
     args = parser.parse_args()
     

@@ -2,6 +2,8 @@ import argparse
 import os
 import sys
 import json
+import random
+import glob
 from typing import Dict
 
 # Add the project root to sys.path to allow imports from video_generation_tool
@@ -66,6 +68,15 @@ def generate_video_for_item(
                 The tone should be speculative, engaging, and thought-provoking.
                 Structure it as a narrative journey.
                 """
+                target_word_limit = 600
+            elif story_type == 'historical_personage':
+                context = f"""
+                Create a detailed biographical video script about: "{topic}".
+                Cover their early life, rise to prominence, key achievements or battles, and their lasting legacy.
+                The tone should be epic, dramatic, and respectful.
+                Structure it as a comprehensive life story.
+                """
+                target_word_limit = 1600
             else: # mystery
                 context = f"""
                 Create a documentary-style video script revealing the secrets of: "{topic}".
@@ -73,12 +84,13 @@ def generate_video_for_item(
                 The tone should be mysterious, educational, and awe-inspiring.
                 Structure it as a journey of discovery.
                 """
+                target_word_limit = 600
             
             script = script_gen.generate_script(
                 context=context,
                 language=language,
                 category="History Mystery",
-                word_limit=600 # Slightly longer for stories
+                word_limit=target_word_limit # Adapted based on story type
             )
             
             if not script:
@@ -134,17 +146,29 @@ def generate_video_for_item(
                     styled_text = prompt_context
                 
                 if is_title:
-                    title_prompt_request = f"""
-                    Create a prompt for a stunning title card image for a video about "{topic}".
-                    The image should be visually arresting and summarize the theme ({story_type}).
-                    
-                    Style: {image_style}
-                    """
-                    image_prompt = client.generate_image_prompt(title_prompt_request)
-                    
-                    # Add text instruction for title
-                    text_instruction = f"\n\nIMPORTANT: Create a cinematic title card. Include the text '{topic}' centered. Font should be consistent with the style."
-                    image_prompt += text_instruction
+                    if story_type == 'historical_personage':
+                        title_prompt_request = f"""
+                        Create a prompt for a poster style image for a biography about "{topic}".
+                        The image should feature the historical figure prominently, looking epic and legendary.
+                        The composition should be vertical or suitable for a poster.
+                        
+                        Style: {image_style}
+                        """
+                        image_prompt = client.generate_image_prompt(title_prompt_request)
+                        text_instruction = f"\n\nIMPORTANT: Create a poster style image. Include the name '{topic}' in a large, epic font suitable for a poster."
+                        image_prompt += text_instruction
+                    else:
+                        title_prompt_request = f"""
+                        Create a prompt for a stunning title card image for a video about "{topic}".
+                        The image should be visually arresting and summarize the theme ({story_type}).
+                        
+                        Style: {image_style}
+                        """
+                        image_prompt = client.generate_image_prompt(title_prompt_request)
+                        
+                        # Add text instruction for title
+                        text_instruction = f"\n\nIMPORTANT: Create a cinematic title card. Include the text '{topic}' centered. Font should be consistent with the style."
+                        image_prompt += text_instruction
                 else:
                     image_prompt = client.generate_image_prompt(styled_text)
                 
@@ -170,7 +194,8 @@ def generate_video_for_item(
                     "image": img_path,
                     "audio": audio_path,
                     "text": scene.get("text", ""),
-                    "image_prompt": scene.get("image_prompt", "")
+                    "image_prompt": scene.get("image_prompt", ""),
+                    "ken_burns": (i > 0) # Enable Ken Burns for non-title scenes
                 }
                 segments.append(segment_data)
             
@@ -224,10 +249,20 @@ def generate_video_for_item(
         
         # 5. Create Video
         print("Creating video...")
+        
+        # Prepare BGM
+        bgm_dir = os.path.join(os.path.dirname(__file__), "BGM")
+        bgm_files = glob.glob(os.path.join(bgm_dir, "*.mp3"))
+        if bgm_files:
+            random.shuffle(bgm_files)
+            print(f"Found {len(bgm_files)} BGM files. Using sequential playback.")
+        else:
+            print(f"No BGM files found in {bgm_dir}")
+            
         video_filename = f"video_{video_index}.mp4"
         video_path = os.path.join(video_dir, video_filename)
         video_maker = VideoMaker(output_file=video_path)
-        video_maker.create_video(segments)
+        video_maker.create_video(segments, bgm_files=bgm_files, bgm_volume=0.15)
         print(f"Video created successfully: {video_path}")
         
         return {"success": True, "output_path": video_path}

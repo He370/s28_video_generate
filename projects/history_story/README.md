@@ -26,6 +26,7 @@ python3 projects/history_story/idea_generator.py --count 5
 # Generate specific types
 python3 projects/history_story/idea_generator.py --count 3 --type what_if
 python3 projects/history_story/idea_generator.py --count 3 --type mystery
+python3 projects/history_story/idea_generator.py --count 1 --type historical_personage
 
 # Generate in a different language
 python3 projects/history_story/idea_generator.py --count 3 --language "French"
