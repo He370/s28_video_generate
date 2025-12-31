@@ -53,28 +53,28 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
 
     ```bash
 # 02:00 AM - Nightly Schedule (Horror Story)
-0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0200_schedule.sh
+0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0200_schedule.sh >> /tmp/cron_0200.log 2>&1
 
 # 04:00 AM - Nightly Schedule (Music Videos)
-0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0400_schedule.sh
+0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0400_schedule.sh >> /tmp/cron_0400.log 2>&1
 
 # 06:00 AM - History Story (What If)
-0 6 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0600_schedule.sh
+0 6 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0600_schedule.sh >> /tmp/cron_0600.log 2>&1
 
 # 10:00 AM - White Noise (1h)
-0 10 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1000_schedule.sh
+40 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1000_schedule.sh >> /tmp/cron_1000.log 2>&1
 
 # 12:00 PM - Today History
-0 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1200_schedule.sh
+0 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1200_schedule.sh >> /tmp/cron_1200.log 2>&1
 
 # 02:00 PM - History Story (Mystery)
-0 14 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1400_schedule.sh
+0 14 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1400_schedule.sh >> /tmp/cron_1400.log 2>&1
 
 # 04:00 PM - White Noise (8h)
-0 16 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1600_schedule.sh
+0 16 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1600_schedule.sh >> /tmp/cron_1600.log 2>&1
 
 # 06:00 PM - White Noise (3h)
-0 18 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1800_schedule.sh
+0 18 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1800_schedule.sh >> /tmp/cron_1800.log 2>&1
     ```
 
     *Note: We use the virtual environment's python executable to ensure all dependencies are available.*

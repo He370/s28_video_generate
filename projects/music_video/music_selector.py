@@ -26,38 +26,39 @@ def select_music(idea_file: str, output_file: str, duration_hours: int = 1):
         idea = json.load(f)
     
     target_genre = idea.get('genre', 'Ambient')
-    bpm_range = idea.get('bpm_range', '60-90')
+    target_mood = idea.get('mood', '')
     
-    # Parse BPM range
-    try:
-        min_bpm, max_bpm = map(int, str(bpm_range).split('-'))
-    except:
-        min_bpm, max_bpm = 0, 999
-        logging.warning(f"Could not parse BPM range '{bpm_range}', using default.")
-
-    logging.info(f"Selecting music: Genre={target_genre}, BPM={min_bpm}-{max_bpm}, Duration={duration_hours}h")
+    logging.info(f"Selecting music: Genre={target_genre}, Mood={target_mood}, Duration={duration_hours}h")
 
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Strategy:
-    # 1. Fetch all tracks of the target genre.
-    # 2. Calculate a score for each track:
-    #    - Base Score: 100
-    #    - Usage Penalty: -10 * usage_count
-    #    - BPM Bonus: +20 if within range, +10 if close (+/- 10), -10 if far
-    #    - Date Bonus: +5 for recent (simple approximation or random tie-break)
-    # 3. Sort by Score DESC
-    
-    query = """
-        SELECT id, filename, filepath, duration, bpm, usage_count
-        FROM tracks 
-        WHERE genre LIKE ?
-    """
-    
-    cursor.execute(query, (f"%{target_genre}%",))
+    if target_mood:
+        query = """
+            SELECT id, filename, filepath, duration, bpm, usage_count
+            FROM tracks 
+            WHERE genre LIKE ? AND mood LIKE ?
+        """
+        cursor.execute(query, (f"%{target_genre}%", f"%{target_mood}%"))
+    else:
+        query = """
+            SELECT id, filename, filepath, duration, bpm, usage_count
+            FROM tracks 
+            WHERE genre LIKE ?
+        """
+        cursor.execute(query, (f"%{target_genre}%",))
+        
     candidates_raw = cursor.fetchall()
     conn.close()
+    
+    if not candidates_raw:
+        logging.error(f"No tracks found for genre: {target_genre}")
+        return
+
+    # No BPM logic as many assets miss metadata.
+    # Selection relies on:
+    # 1. Low usage count (freshness).
+    # 2. Randomness for variety among fresh tracks.
 
     scored_candidates = []
     for c in candidates_raw:
@@ -68,14 +69,6 @@ def select_music(idea_file: str, output_file: str, duration_hours: int = 1):
         # Usage Penalty (heavy penalty to prioritize new music)
         score -= (usage_count * 20)
         
-        # BPM Weighting
-        if track_bpm >= min_bpm and track_bpm <= max_bpm:
-            score += 30 # Perfect match
-        elif track_bpm >= min_bpm - 10 and track_bpm <= max_bpm + 10:
-            score += 10 # Close fit
-        else:
-            score -= 10 # Far fit
-            
         # Random jitter to mix things up slightly among similar scores
         score += random.uniform(-5, 5)
         
@@ -148,7 +141,7 @@ def select_music(idea_file: str, output_file: str, duration_hours: int = 1):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--hours", type=int, choices=[1, 3], default=1, help="Duration in hours")
+    parser.add_argument("--hours", type=int, choices=[1, 2, 3], default=1, help="Duration in hours")
     args = parser.parse_args()
     
     select_music('idea.json', 'selected_tracks.json', args.hours)

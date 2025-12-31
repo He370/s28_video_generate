@@ -53,11 +53,30 @@ def main():
     if not pending_videos:
         logging.info("No pending videos found.")
         return
-
+    
     processed_count = 0
     
     # Collect existing titles to avoid duplication
     existing_titles = [v.get('topic') for v in videos if v.get('status') in ['generated', 'uploaded'] and v.get('topic')]
+    
+    # NEW: Collect recently used genres (last 4 videos) to avoid repetition
+    # Sort videos by index or completion date to ensure "recent" means recent
+    # Assuming index is sufficient proxy for order
+    completed_videos = [v for v in videos if v.get('status') in ['generated', 'uploaded']]
+    # Sort by index descending
+    completed_videos.sort(key=lambda x: x.get('index', 0), reverse=True)
+    
+    avoid_genres = []
+    # Take last 4
+    for v in completed_videos[:4]:
+        g = v.get('genre')
+        if g:
+            avoid_genres.append(g)
+            
+    # De-duplicate
+    avoid_genres = list(set(avoid_genres))
+    if avoid_genres:
+        logging.info(f"Will soft-avoid the following recently used genres: {avoid_genres}")
     
     for video in pending_videos:
         if processed_count >= args.count:
@@ -84,13 +103,18 @@ def main():
             # Step 1: Idea Generation
             if not os.path.exists(idea_file):
                 logging.info("Step 1: Generating Idea...")
-                idea = idea_generator.generate_idea_to_file(idea_file, cover_image, existing_titles=existing_titles, dev_mode=args.dev)
+                # Pass avoid_genres here
+                idea = idea_generator.generate_idea_to_file(idea_file, cover_image, existing_titles=existing_titles, avoid_genres=avoid_genres, dev_mode=args.dev)
                 if not idea:
                     raise Exception("Failed to generate idea")
                 
                 # Add new title to existing list for subsequent iterations
                 if idea.get('title'):
                     existing_titles.append(idea.get('title'))
+                    
+                # Add new genre to avoid list for subsequent iterations in THIS batch
+                if idea.get('genre'):
+                    avoid_genres.append(idea.get('genre'))
 
                 # Update video topic in queue
                 batch_processor.update_video_status(
@@ -100,7 +124,7 @@ def main():
                     topic=idea.get('title'),
                     scene_description=idea.get('description'),
                     genre=idea.get('genre'),
-                    bpm_range=idea.get('bpm_range'),
+                    mood=idea.get('mood'),
                     youtube_title=idea.get('title'),
                     youtube_description=idea.get('description'),
                     youtube_tags=idea.get('tags')
