@@ -9,127 +9,86 @@ class VideoMaker:
     def __init__(self, output_file: str = "history_video.mp4"):
         self.output_file = output_file
 
-    def apply_ken_burns(self, clip, duration: float):
+    def apply_ken_burns_ffmpeg(self, image_path: str, duration: float, output_path: str):
         """
-        Applies a random Ken Burns effect (Pan & Zoom) to the clip.
-        Uses manual transform with PIL for high quality resize, as MoviePy 2.x
-        Crop/Resize effects may not support animation/lambdas easily yet.
-        """
-        w, h = clip.size
-        target_ratio = 16 / 9
-        current_ratio = w / h
+        Applies a smooth Ken Burns effect using FFmpeg's zoompan filter with upscaling.
         
-        # 1. Determine maximum 16:9 crop that fits in the original image
-        if current_ratio > target_ratio:
-            max_h = h
-            max_w = int(h * target_ratio)
+        Args:
+            image_path: Path to the input image
+            duration: Duration of the effect in seconds
+            output_path: Path for the output video file
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        import subprocess
+        
+        # Use 60fps for smoother motion
+        fps = 60
+        total_frames = int(duration * fps)
+        
+        # Random zoom direction
+        zoom_direction = random.choice(['in', 'out'])
+        
+        # Calculate zoom rate to complete exactly once during clip duration
+        # We want to zoom from 1.0 to 1.15 (or reverse) over the entire duration
+        # Zoom range: 0.15 (15% total zoom)
+        zoom_range = 0.15
+        zoom_increment = zoom_range / total_frames
+        
+        if zoom_direction == 'in':
+            # Zoom in: start at 1.0, end at 1.15
+            # Use min() to cap at 1.15 so it doesn't loop
+            zoom_expr = f'min(1+{zoom_increment}*on,1.15)'
         else:
-            max_w = w
-            max_h = int(w / target_ratio)
-            
-        # 2. Random Start/End Zoom (1.0 = max fit, >1.0 = zoomed in)
-        zoom_min = 1.15
-        zoom_max = 1.40 
+            # Zoom out: start at 1.15, end at 1.0
+            # Use max() to cap at 1.0 so it doesn't loop
+            zoom_expr = f'max(1.15-{zoom_increment}*on,1.0)'
         
-        z1 = random.uniform(zoom_min, zoom_max)
-        z2 = random.uniform(zoom_min, zoom_max)
+        # No pan - keep centered
+        x_expr = 'iw/2-(iw/zoom/2)'
+        y_expr = 'ih/2-(ih/zoom/2)'
         
-        # 3. Calculate Crop Dimensions
-        w1, h1 = max_w / z1, max_h / z1
-        w2, h2 = max_w / z2, max_h / z2
+        # Build video filter chain:
+        # 1. Scale up to 4K (7680x4320) for quality
+        # 2. Apply zoompan to create smooth motion
+        # 3. Convert to yuv420p for compatibility
+        vf_chain = (
+            f"scale=7680x4320,"
+            f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={total_frames}:s=1920x1080:fps={fps},"
+            f"format=yuv420p"
+        )
         
-        # 4. Calculate Valid Top-Left Positions
-        x1_max = w - w1
-        y1_max = h - h1
-        x2_max = w - w2
-        y2_max = h - h2
+        # Build FFmpeg command
+        # -loop 1 is required for zoompan to work on still images
+        # It allows the filter to read the same frame multiple times to generate motion
+        cmd = [
+            'ffmpeg',
+            '-loop', '1',  # Required for still image input
+            '-i', image_path,
+            '-vf', vf_chain,
+            '-c:v', 'libx264',
+            '-crf', '18',  # Higher quality
+            '-preset', 'slow',  # Better compression
+            '-t', str(duration),
+            '-y',  # Overwrite output file
+            output_path
+        ]
         
-        # Random positions
-        # Ensure we don't go negative if zoomed out too much (logic protects this mostly)
-        x1 = random.uniform(0, max(0, x1_max))
-        y1 = random.uniform(0, max(0, y1_max))
-        x2 = random.uniform(0, max(0, x2_max))
-        y2 = random.uniform(0, max(0, y2_max))
-        
-        def filter_frame(get_frame, t):
-            # Safe interpolation
-            p = t / duration if duration > 0 else 0
-            p = max(0, min(1, p)) # clamp
-            
-            current_x = x1 + (x2 - x1) * p
-            current_y = y1 + (y2 - y1) * p
-            current_w = w1 + (w2 - w1) * p
-            current_h = h1 + (h2 - h1) * p
-            
-            # Get frame
-            img_np = get_frame(t)
-            
-            # Crop
-            ix = int(current_x)
-            iy = int(current_y)
-            iw = int(current_w)
-            ih = int(current_h)
-            
-            # PIL Image for Resize (high quality)
-            # MoviePy frames are HxWx3 (RGB)
-            try:
-                img_pil = Image.fromarray(img_np)
-                
-                # Crop
-                # box = (left, upper, right, lower)
-                box = (ix, iy, ix + iw, iy + ih)
-                img_crop = img_pil.crop(box)
-                
-                # Resize
-                # BICUBIC is high quality
-                img_resized = img_crop.resize((1920, 1080), resample=Image.BILINEAR)
-                
-                return np.array(img_resized)
-            except Exception as e:
-                # Fallback to avoid crash during render
-                print(f"Error in Ken Burns frame: {e}")
-                return img_np
-
-        # Create new clip
-        # Note: transform allows changing size? 
-        # Usually transform keeps size unless we cheat or use another generic wrapper.
-        # But 'transform' doc says "Modifies the clip by applying...". 
-        # If the returned frame has different size, the clip size property might be wrong 
-        # unless updated. 
-        # Actually, VideoClip with make_frame is better if size changes.
-        # But here use `transform` and assume MoviePy handles frame size change dynamically 
-        # OR we force-set metadata.
-        
-        # Actually, simpler to just wrap in a new VideoClip if using arbitrary frame gen.
-        # But `clip.transform` is meant for this.
-        
-        new_clip = clip.transform(filter_frame)
-        
-        # IMPORTANT: Manually set the size of the new clip to 1920x1080
-        # because the internal metadata won't update automatically just by the function.
-        # But MoviePy 2 might be strict.
-        # Let's use `resized` for final safety metadata update?
-        # Or just trust that we return 1920x1080
-        
-        # In simple Manual:
-        # new_clip.size = (1920, 1080)
-        # return new_clip
-        
-        # However, `transform` returns a copy.
-        # We should monkeypatch size or use `with_effects([vfx.Resize((1920, 1080))])` 
-        # but that would resize AGAIN.
-        
-        # Let's try creating a generic VideoClip with make_frame
-        
-        from moviepy import VideoClip as ValidVideoClip
-        def make_frame(t):
-           return filter_frame(clip.get_frame, t)
-           
-        final_clip = ValidVideoClip(make_frame, duration=duration)
-        final_clip.fps = 24
-        final_clip.size = (1920, 1080)
-        
-        return final_clip
+        try:
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"FFmpeg error applying Ken Burns: {e.stderr.decode()}")
+            return False
+        except Exception as e:
+            print(f"Error applying Ken Burns with FFmpeg: {e}")
+            return False
 
 
 
@@ -142,7 +101,11 @@ class VideoMaker:
         bgm_file: Path to a single BGM file (legacy support).
         bgm_files: List of paths to BGM files to play sequentially.
         """
+        from moviepy import VideoFileClip
+        import tempfile
+        
         clips = []
+        temp_files = []  # Track temporary files for cleanup
         
         # Check explicit padding for start/end if passed, or use defaults
         # Example usage: {0: 2.0, -1: 3.0, 'default': 0.5}
@@ -165,36 +128,42 @@ class VideoMaker:
                 
             duration = audio_clip.duration + padding
             
-            # Load Image
-            image_clip = ImageClip(segment['image']).with_duration(duration)
-            
             # Check Ken Burns flag: Segment specific or Global override
             use_ken_burns = segment.get('ken_burns', enable_ken_burns)
 
             if use_ken_burns:
-                try:
-                    # Apply Advanced Ken Burns
-                    image_clip = self.apply_ken_burns(image_clip, duration)
-                except Exception as e:
-                    print(f"Error applying Ken Burns, falling back to static: {e}")
-                    image_clip = image_clip.resized(new_size=(1920, 1080))
-            else:
-                # Standard fit
-                image_clip = image_clip.resized(new_size=(1920, 1080))
+                # Use FFmpeg to pre-process the image with Ken Burns effect
+                temp_video = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+                temp_video_path = temp_video.name
+                temp_video.close()
+                temp_files.append(temp_video_path)
                 
-            image_clip = image_clip.with_position('center')
-            
-            # Create Subtitle (Optional, simple version)
-            # Note: TextClip requires ImageMagick. If not installed, this might fail.
-            # We will try/except or just skip subtitles if complex.
-            # For this implementation, we'll try a simple TextClip.
-            
-            clips_to_compose = [image_clip]
-            
-            # Composite with fixed size to handle the zooming image
-            video_clip = CompositeVideoClip(clips_to_compose, size=(1920, 1080))
-            
-            video_clip = video_clip.with_audio(audio_clip)
+                success = self.apply_ken_burns_ffmpeg(
+                    segment['image'], 
+                    duration, 
+                    temp_video_path
+                )
+                
+                if success:
+                    # Load the pre-processed video clip
+                    video_clip = VideoFileClip(temp_video_path)
+                    video_clip = video_clip.with_audio(audio_clip)
+                else:
+                    print(f"Failed to apply Ken Burns with FFmpeg, using static image")
+                    # Fallback to static image
+                    image_clip = ImageClip(segment['image']).with_duration(duration)
+                    image_clip = image_clip.resized(new_size=(1920, 1080))
+                    image_clip = image_clip.with_position('center')
+                    video_clip = CompositeVideoClip([image_clip], size=(1920, 1080))
+                    video_clip = video_clip.with_audio(audio_clip)
+            else:
+                # Standard static image
+                image_clip = ImageClip(segment['image']).with_duration(duration)
+                image_clip = image_clip.resized(new_size=(1920, 1080))
+                image_clip = image_clip.with_position('center')
+                video_clip = CompositeVideoClip([image_clip], size=(1920, 1080))
+                video_clip = video_clip.with_audio(audio_clip)
+                
             clips.append(video_clip)
             
         final_clip = concatenate_videoclips(clips)
@@ -260,3 +229,12 @@ class VideoMaker:
                 print(f"Error adding background music: {e}")
 
         final_clip.write_videofile(self.output_file, fps=24)
+        
+        # Clean up temporary files
+        for temp_file in temp_files:
+            try:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    print(f"Cleaned up temporary file: {temp_file}")
+            except Exception as e:
+                print(f"Error cleaning up temporary file {temp_file}: {e}")

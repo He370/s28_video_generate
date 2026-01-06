@@ -48,7 +48,7 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     Output strictly in JSON format as a list of objects:
     [
         {{
-            "topic": "The Topic Title, the historical personage name, or the historical event name",
+            "topic": "The Topic Title, the historical personage name, or the historical event name, less than 10 words",
             "type": "what_if", "mystery" or "historical_personage",
             "description": "A brief description of the video concept."
         }},

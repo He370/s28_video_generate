@@ -76,7 +76,7 @@ def generate_video_for_item(
                 The tone should be epic, dramatic, and respectful.
                 Structure it as a comprehensive life story.
                 """
-                target_word_limit = 1600
+                target_word_limit = 2000
             else: # mystery
                 context = f"""
                 Create a documentary-style video script revealing the secrets of: "{topic}".
