@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 from typing import List, Dict, Optional
 from PIL import Image, ImageDraw, ImageFont
 
-load_dotenv()
+# Load .env from the video_generation_tool directory
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_current_dir, '.env'))
 
 class GeminiClient:
     def __init__(self, mode: str = "dev"):
@@ -233,33 +235,100 @@ class GeminiClient:
         try:
             time.sleep(self.delay)
             
+            # Prepare config for video generation
+            video_config = types.GenerateVideosConfig(
+                aspect_ratio="16:9",  # 1920x1080
+                duration_seconds=8,    # 8-second video
+            )
+            
+            # Build contents list
             if image_path and os.path.exists(image_path):
                 print(f"Using reference image for video: {image_path}")
                 img = Image.open(image_path)
-                # To encourage looping, we provide the image as both start and end context if possible.
-                # Common pattern for looping with Veo/Imagen 2 Video is [image, prompt, image] or similar.
-                contents = [img, prompt, img]
+                # Use image as reference for video generation
+                contents = [img, prompt]
             else:
                 contents = [prompt]
             
-            print("Calling client.models.generate_content for video...")
+            print(f"Calling client.models.generate_videos with {target_model}...")
             
-            # Veo 3.1 uses generate_content just like other models in the unified SDK
-            # Attempting without response_mime_type as it caused an error for non-text types.
-            
-            response = self.client.models.generate_content(
+            # Use the correct method for Veo models: generate_videos
+            response = self.client.models.generate_videos(
                 model=target_model,
-                contents=contents
+                prompt=prompt,
+                config=video_config
             )
             
-            # Extract video data
+            # Extract video data from response
             video_saved = False
-            if hasattr(response, 'candidates') and response.candidates:
+            
+            # Check if this is a long-running operation (Veo generates async)
+            if hasattr(response, 'name') and 'operations/' in response.name:
+                print(f"Video generation is a long-running operation: {response.name}")
+                print("Waiting for video generation to complete...")
+                
+                # Poll the operation until it's done
+                max_wait_time = 600  # 10 minutes max
+                poll_interval = 10   # Check every 10 seconds
+                elapsed = 0
+                
+                operation = response
+                while not operation.done and elapsed < max_wait_time:
+                    # Use the time module that's already imported at the top
+                    import time as time_module
+                    time_module.sleep(poll_interval)
+                    elapsed += poll_interval
+                    
+                    # Refresh the operation object to get the latest status
+                    operation = self.client.operations.get(operation)
+                    
+                    if not operation.done:
+                        print(f"Still generating... ({elapsed}s elapsed)")
+                
+                if elapsed >= max_wait_time:
+                    raise TimeoutError("Video generation timed out after 10 minutes")
+                
+                if operation.done:
+                    print("Video generation completed!")
+                    # Extract video from completed operation
+                    response = operation
+            
+            # The response should have generated_videos attribute
+            if hasattr(response, 'response') and hasattr(response.response, 'generated_videos'):
+                # Response from completed operation
+                generated_videos = response.response.generated_videos
+                if generated_videos and len(generated_videos) > 0:
+                    video = generated_videos[0]
+                    # Download the video file
+                    if hasattr(video, 'video'):
+                        print(f"Downloading video to {output_path}...")
+                        self.client.files.download(file=video.video)
+                        video.video.save(output_path)
+                        print(f"Video saved to {output_path}")
+                        video_saved = True
+            elif hasattr(response, 'generated_videos') and response.generated_videos:
+                # Direct response (non-operation)
+                video = response.generated_videos[0]
+                if hasattr(video, 'video') and hasattr(video.video, 'video_bytes'):
+                    video_bytes = video.video.video_bytes
+                    with open(output_path, "wb") as f:
+                        f.write(video_bytes)
+                    print(f"Video saved to {output_path}")
+                    video_saved = True
+            elif hasattr(response, 'generated_video') and response.generated_video:
+                # Alternative structure
+                video_bytes = response.generated_video.video_bytes
+                with open(output_path, "wb") as f:
+                    f.write(video_bytes)
+                print(f"Video saved to {output_path}")
+                video_saved = True
+            elif hasattr(response, 'candidates') and response.candidates:
+                # Fallback: check candidates structure
                 parts = response.candidates[0].content.parts
                 for part in parts:
                     if hasattr(part, "inline_data") and part.inline_data:
-                         # Check mime type if available, but usually it's the video
-                         if part.inline_data.mime_type.startswith("video/") or True:
+                         # Check mime type if available
+                         if part.inline_data.mime_type.startswith("video/"):
                             with open(output_path, "wb") as f:
                                 f.write(part.inline_data.data)
                             print(f"Video saved to {output_path}")

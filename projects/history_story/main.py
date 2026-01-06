@@ -48,8 +48,8 @@ def generate_video_for_item(
     print(f"{'='*60}\n")
     
     try:
-        # Initialize AudioGenerator with language
-        audio_gen = AudioGenerator(language=language, mode=mode)
+        # Note: audio_gen is passed as parameter, respecting the language/voice settings
+        # from the main() initialization. Do not create a new instance here.
 
         # 1. Generate or Load Script
         script_path = os.path.join(assets_dir, "script.txt")

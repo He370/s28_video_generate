@@ -138,16 +138,21 @@ def main():
                     except Exception as e:
                         print(f"Error deleting video file: {e}")
                 
-                # Upload thumbnail (scene_0.png)
+                # Upload thumbnail
                 try:
                     video_dir = os.path.dirname(video_path)
-                    thumbnail_path = os.path.join(video_dir, "assets", "scene_0.png")
+                    
+                    # Check for thumbnail.jpg first (music_video project)
+                    thumbnail_path = os.path.join(video_dir, "assets", "thumbnail.jpg")
+                    if not os.path.exists(thumbnail_path):
+                        # Fall back to scene_0.png (other projects)
+                        thumbnail_path = os.path.join(video_dir, "assets", "scene_0.png")
                     
                     if os.path.exists(thumbnail_path):
                         print(f"Found thumbnail: {thumbnail_path}")
                         uploader.upload_thumbnail(response.get('id'), thumbnail_path)
                     else:
-                        print(f"No thumbnail found at {thumbnail_path}, skipping.")
+                        print(f"No thumbnail found (checked thumbnail.jpg and scene_0.png), skipping.")
                 except Exception as thumb_e:
                     print(f"Warning: Failed to upload thumbnail: {thumb_e}")
                     

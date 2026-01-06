@@ -69,6 +69,9 @@ def get_music_inventory() -> List[Dict[str, Any]]:
     sorted_keys = sorted(inventory_counts.keys(), key=lambda k: (-inventory_counts[k], k[0], k[1]))
     
     for g, m in sorted_keys:
+        # Skip "Unknown" genre - we want real genre names
+        if g.lower() == 'unknown':
+            continue
         inventory.append({
             "genre": g,
             "mood": m,
@@ -117,9 +120,14 @@ def generate_idea(inventory: List[Dict[str, Any]], existing_titles: List[str] = 
        - IMPORTANT: The scene must be a beautiful, static composition of a room or space.
        - BE VERY SPECIFIC about the lighting, textures, furniture, plant life, and small background details.
        - Include specific style keywords like "cinematic lighting, 8k, photorealistic".
-    6. Provide a list of 8-12 comma-separated YouTube Video Tags for search optimization (e.g. 'lofi hip hop, relaxation, study music').
+    6. Provide a COMPLEMENTARY Video Generation Prompt (for Veo3) that works with the image prompt:
+       - The video should show SUBTLE, NATURAL movements in the same scene (e.g., gentle rain falling, soft window light changing, plants swaying slightly)
+       - CRITICAL: The prompt must be designed for SEAMLESS LOOPING - movements should be cyclical and natural
+       - The video should maintain the same cozy atmosphere and composition as the image
+       - Specify "8 seconds, 1080p, seamless loop, subtle motion, cinematic"
+    7. Provide a list of 8-12 comma-separated YouTube Video Tags for search optimization (e.g. 'lofi hip hop, relaxation, study music').
     
-    Output the result as a raw JSON object with keys: "theme", "genre", "mood", "title", "description", "tags", "image_prompt".
+    Output the result as a raw JSON object with keys: "theme", "genre", "mood", "title", "description", "tags", "image_prompt", "video_prompt".
     Do not include markdown formatting like ```json ... ```.
     """
     

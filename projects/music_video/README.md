@@ -6,14 +6,19 @@ This project automates the creation of "Relax & Focus" style music videos using 
 The process is orchestrated by `main.py` and tracks state in `videos.json`.
 
 1.  **Idea Generation**: Queries the local music database to see what genres are available, then uses Gemini to generate a specific theme (e.g., "Midnight Metropolis Jazz"), title, description, and prompts for visuals.
+    - Generates both an **image prompt** (for static cover image) and a **video prompt** (for Veo3 video generation)
+    - Both prompts are designed to be complementary and optimized for seamless looping
 2.  **Visuals Creation**: 
-    *   Generates a high-quality static cover image using Gemini (Imagen 3).
-    *   Generates a 4-second seamless video loop using Gemini (Veo) based on the cover image and prompts.
+    *   Generates a high-quality static cover image using Gemini (Imagen 3)
+    *   Generates an **8-second seamless video loop** using Gemini (Veo 3.1) at 1080p based on the cover image and video prompt
+    *   Applies **"Cut, Swap, and Fade" technique** to create a truly seamless loop (hides the loop point by swapping video halves and crossfading)
+    *   **YouTube Thumbnail**: Generates a thumbnail (1280x720) with title text overlaid on the cover image
 3.  **Music Selection**: Selects a set of tracks from `music.db` that match the generated genre and BPM criteria to fill the target duration (e.g., 1 hour). Prioritizes newer and less-used tracks.
 4.  **Assembly**:
-    *   Concatenates audio tracks into a single file with crossfades.
-    *   Loops the video visual (using FFmpeg `stream_loop`) to match the audio duration.
-    *   Muxes audio and video into the final MP4.
+    *   Concatenates audio tracks into a single file with crossfades
+    *   Loops the seamless video visual (using FFmpeg `stream_loop`) to match the audio duration
+    *   Muxes audio and video into the final MP4
+    *   **Title Overlay**: Adds the title and description text at the beginning with fade in/out animation (5 seconds total)
 
 ## Usage
 
