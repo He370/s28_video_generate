@@ -117,14 +117,15 @@ def generate_idea(inventory: List[Dict[str, Any]], existing_titles: List[str] = 
     3. Provide a YouTube Video Title.
     4. Provide a short YouTube Video Description.
     5. Provide a HIGHLY DETAILED, EXTREMELY INTRICATE Image Generation Prompt for a COZY LIVING ENVIRONMENT with rich details. PERFECTLY MATCHES the chosen Genre and Mood.
-       - IMPORTANT: The scene must be a beautiful, static composition of a room or space.
-       - BE VERY SPECIFIC about the lighting, textures, furniture, plant life, and small background details.
-       - Include specific style keywords like "cinematic lighting, 8k, photorealistic".
+       - IMPORTANT: The scene must be a DYNAMIC COMPOSITION with a strong sense of life and atmosphere.
+       - BE VERY SPECIFIC about the lighting, textures, furniture, plant life, and background activity.
+       - Include specific style keywords like "cinematic lighting, 8k, photorealistic, dynamic shadows, rich colors".
     6. Provide a COMPLEMENTARY Video Generation Prompt (for Veo3) that works with the image prompt:
-       - The video should show SUBTLE, NATURAL movements in the same scene (e.g., gentle rain falling, soft window light changing, plants swaying slightly)
-       - CRITICAL: The prompt must be designed for SEAMLESS LOOPING - movements should be cyclical and natural
-       - The video should maintain the same cozy atmosphere and composition as the image
-       - Specify "8 seconds, 1080p, seamless loop, subtle motion, cinematic"
+       - CRITICAL: Use a STABLE CAMERA (tripod shot) to ensure perfect looping.
+       - Feature NOTICEABLE, DYNAMIC MOVEMENTS within the scene to make it feel alive.
+       - Examples: "active rainfall against glass, flowing water in a stream, visible wind blowing trees/curtains, dynamic light/shadow shifts, fireplace flames dancing".
+       - The video must use the SAME IMAGE as both FIRST and LAST frame for PERFECT SEAMLESS LOOPING
+       - Specify "8 seconds, 1080p, stable camera, seamless loop, dynamic motion, cinematic"
     7. Provide a list of 8-12 comma-separated YouTube Video Tags for search optimization (e.g. 'lofi hip hop, relaxation, study music').
     
     Output the result as a raw JSON object with keys: "theme", "genre", "mood", "title", "description", "tags", "image_prompt", "video_prompt".
@@ -155,7 +156,7 @@ def generate_idea(inventory: List[Dict[str, Any]], existing_titles: List[str] = 
 
 
 
-def generate_idea_to_file(output_file: str, cover_image_file: str, existing_titles: List[str] = [], avoid_genres: List[str] = [], dev_mode: bool = False) -> Optional[Dict]:
+def generate_idea_to_file(output_file: str, cover_image_file: str, existing_titles: List[str] = [], avoid_genres: List[str] = [], dev_mode: bool = False, skip_image_generation: bool = False) -> Optional[Dict]:
     inventory = get_music_inventory()
     if not inventory:
         logging.error("No music found in inventory.")
@@ -172,18 +173,24 @@ def generate_idea_to_file(output_file: str, cover_image_file: str, existing_titl
         
         # Generate Cover Image
         image_prompt = idea.get('image_prompt')
-        if image_prompt:
-            logging.info("Generating cover image...")
-            client = GeminiClient(mode="dev" if dev_mode else "prod")
-            try:
-                client.generate_image(
-                    prompt=image_prompt, 
-                    output_path=cover_image_file,
-                    model=GEMINI_IMAGE_ADVANCED_MODEL
-                )
-                idea['cover_image_path'] = os.path.abspath(cover_image_file)
-            except Exception as e:
-                logging.error(f"Error generating cover image: {e}")
+        
+        if not skip_image_generation:
+            if image_prompt:
+                logging.info("Generating cover image...")
+                client = GeminiClient(mode="dev" if dev_mode else "prod")
+                try:
+                    client.generate_image(
+                        prompt=image_prompt, 
+                        output_path=cover_image_file,
+                        model=GEMINI_IMAGE_ADVANCED_MODEL
+                    )
+                    idea['cover_image_path'] = os.path.abspath(cover_image_file)
+                except Exception as e:
+                    logging.error(f"Error generating cover image: {e}")
+        else:
+            logging.info("Skipping cover image generation (will be generated during video creation).")
+            # We still set the path where it WILL be, so downstream tools know where to look
+            idea['cover_image_path'] = os.path.abspath(cover_image_file)
         
         # Save idea to file
         with open(output_file, 'w') as f:

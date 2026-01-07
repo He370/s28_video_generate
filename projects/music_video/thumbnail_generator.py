@@ -34,10 +34,9 @@ def generate_thumbnail(idea_file: str, cover_image: str, output_path: str):
     with open(idea_file, 'r') as f:
         idea = json.load(f)
     
-    title = idea.get('title', 'RELAX & FOCUS')
     genre = idea.get('genre', 'Music')
     
-    logging.info(f"Generating thumbnail for: '{title}'")
+    logging.info(f"Generating thumbnail for genre: '{genre}'")
     
     try:
         # Open and resize cover image to 1280x720
@@ -53,49 +52,33 @@ def generate_thumbnail(idea_file: str, cover_image: str, output_path: str):
         # Create drawing context
         draw = ImageDraw.Draw(img)
         
-        # Try to use Arial Bold for title, fallback to default
+        # Load font for genre
         try:
-            # macOS system fonts
-            title_font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 80)
-            desc_font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 36)
+            # Use modern font for genre
+            genre_font = ImageFont.truetype("/System/Library/Fonts/SFCompact.ttf", 80)
         except:
             try:
-                # Linux fallback
-                title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 80)
-                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
+                genre_font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 80)
             except:
-                logging.warning("Could not load custom fonts, using default")
-                title_font = ImageFont.load_default()
-                desc_font = ImageFont.load_default()
+                genre_font = ImageFont.load_default()
         
-        # Calculate text positions (centered)
-        # Get text bounding boxes
-        title_bbox = draw.textbbox((0, 0), title, font=title_font)
-        title_width = title_bbox[2] - title_bbox[0]
-        title_height = title_bbox[3] - title_bbox[1]
-        
-        genre_bbox = draw.textbbox((0, 0), genre.upper(), font=desc_font)
+        # Get genre text bounding box
+        genre_text = genre.upper()
+        genre_bbox = draw.textbbox((0, 0), genre_text, font=genre_font)
         genre_width = genre_bbox[2] - genre_bbox[0]
         genre_height = genre_bbox[3] - genre_bbox[1]
         
-        # Center horizontally, position vertically in center
-        title_x = (1280 - title_width) // 2
-        title_y = (720 - title_height) // 2 - 40
-        
+        # Center both horizontally and vertically
         genre_x = (1280 - genre_width) // 2
-        genre_y = title_y + title_height + 20
+        genre_y = (720 - genre_height) // 2
         
-        # Draw text with shadow for better visibility
-        # Shadow (black, offset)
-        shadow_offset = 3
-        draw.text((title_x + shadow_offset, title_y + shadow_offset), title, 
-                 font=title_font, fill=(0, 0, 0, 200))
-        draw.text((genre_x + shadow_offset, genre_y + shadow_offset), genre.upper(), 
-                 font=desc_font, fill=(0, 0, 0, 200))
+        # Draw shadow
+        shadow_offset = 4
+        draw.text((genre_x + shadow_offset, genre_y + shadow_offset), genre_text, 
+                 font=genre_font, fill=(0, 0, 0, 200))
         
-        # Main text (white)
-        draw.text((title_x, title_y), title, font=title_font, fill=(255, 255, 255, 255))
-        draw.text((genre_x, genre_y), genre.upper(), font=desc_font, fill=(255, 255, 255, 255))
+        # Draw main text
+        draw.text((genre_x, genre_y), genre_text, font=genre_font, fill=(255, 255, 255, 255))
         
         # Save as JPEG (YouTube standard)
         img.save(output_path, 'JPEG', quality=95)

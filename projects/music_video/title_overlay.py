@@ -34,19 +34,30 @@ def add_title_overlay(idea_file: str, input_video: str, output_video: str):
     with open(idea_file, 'r') as f:
         idea = json.load(f)
     
-    title = idea.get('title', 'RELAX & FOCUS')
     genre = idea.get('genre', 'Music')
     
-    logging.info(f"Adding title overlay: '{title}'")
-    logging.info(f"Genre: '{genre}'")
+    # Escape special characters for FFmpeg drawtext filter
+    # FFmpeg drawtext requires escaping: : \ ' [ ]
+    def escape_ffmpeg_text(text):
+        """Escape special characters for FFmpeg drawtext filter."""
+        # Replace problematic characters
+        text = text.replace('\\', '\\\\')  # Backslash must be first
+        text = text.replace("'", "\\'")    # Single quote
+        text = text.replace(':', '\\:')    # Colon
+        text = text.replace('[', '\\[')    # Left bracket
+        text = text.replace(']', '\\]')    # Right bracket
+        return text
+    
+    genre_escaped = escape_ffmpeg_text(genre.upper())
+    
+    logging.info(f"Adding genre overlay: '{genre}'")
     
     # FFmpeg drawtext filter with fade effects
     # Positioning: centered horizontally and vertically
-    # Font: Modern, using Inter or similar system font
+    # Font: Modern, using SF Pro or similar system font
     # Effects: fade in (0-1s), display (1-4s), fade out (4-5s)
     
-    # Try to use a modern font - Inter, SF Pro, or fallback to Helvetica
-    # On macOS, we can use SF Pro Display which is modern and clean
+    # Try to use a modern font
     font_options = [
         "/System/Library/Fonts/SFCompact.ttf",  # SF Compact (modern, clean)
         "/System/Library/Fonts/Supplemental/Futura.ttc",  # Futura (modern, geometric)
@@ -65,34 +76,20 @@ def add_title_overlay(idea_file: str, input_video: str, output_video: str):
     
     logging.info(f"Using font: {font_file}")
     
-    # Alpha expression: if(lt(t,1), t, if(lt(t,4), 1, if(lt(t,5), 5-t, 0)))
-    
-    # Title text (main, larger)
-    title_filter = (
-        f"drawtext="
-        f"text='{title}':"
-        f"fontfile={font_file}:"
-        f"fontsize=84:"  # Increased from 72
-        f"fontcolor=white:"
-        f"x=(w-text_w)/2:"
-        f"y=(h-text_h)/2-50:"  # Adjusted position
-        f"alpha='if(lt(t,1), t, if(lt(t,4), 1, if(lt(t,5), 5-t, 0)))'"
-    )
-    
-    # Genre text (smaller, below title) - replaces description
+    # Genre text (centered, large and prominent)
     genre_filter = (
         f"drawtext="
-        f"text='{genre.upper()}':"  # Uppercase for style
+        f"text='{genre_escaped}':"
         f"fontfile={font_file}:"
-        f"fontsize=36:"  # Increased from 28
+        f"fontsize=72:"  # Large, prominent font
         f"fontcolor=white:"
         f"x=(w-text_w)/2:"
-        f"y=(h-text_h)/2+60:"  # Adjusted position
-        f"alpha='if(lt(t,1), t, if(lt(t,4), 1, if(lt(t,5), 5-t, 0)))'"
+        f"y=(h-text_h)/2:"  # Centered vertically
+        f"alpha='if(lt(t\\,1)\\, t\\, if(lt(t\\,4)\\, 1\\, if(lt(t\\,5)\\, 5-t\\, 0)))'"
     )
     
-    # Combine both text overlays
-    video_filter = f"{title_filter},{genre_filter}"
+    # Use only genre filter
+    video_filter = genre_filter
     
     # FFmpeg command
     cmd = [

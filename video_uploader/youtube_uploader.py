@@ -141,7 +141,12 @@ class YouTubeUploader:
             
         print(f"Uploading thumbnail from {file_path} for video {video_id}...")
         
-        media = MediaFileUpload(file_path, mimetype='image/png', resumable=True)
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if not mime_type:
+            mime_type = 'image/png' # Default fallback
+            
+        media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
         
         request = self.youtube.thumbnails().set(
             videoId=video_id,

@@ -52,6 +52,9 @@ To schedule the jobs to run automatically on your Mac, use `crontab`.
     **Important**: You must provide the full path to the scripts.
 
     ```bash
+# History Story 1 - Daily at 2:00 AM
+0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_biography.sh"
+
 # 02:00 AM - Nightly Schedule (Horror Story)
 0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0200_schedule.sh >> /tmp/cron_0200.log 2>&1
 

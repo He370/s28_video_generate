@@ -7,9 +7,7 @@ from dotenv import load_dotenv
 from typing import List, Dict, Optional
 from PIL import Image, ImageDraw, ImageFont
 
-# Load .env from the video_generation_tool directory
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(_current_dir, '.env'))
+load_dotenv()
 
 class GeminiClient:
     def __init__(self, mode: str = "dev"):
@@ -235,110 +233,129 @@ class GeminiClient:
         try:
             time.sleep(self.delay)
             
-            # Prepare config for video generation
-            video_config = types.GenerateVideosConfig(
-                aspect_ratio="16:9",  # 1920x1080
-                duration_seconds=8,    # 8-second video
-            )
-            
-            # Build contents list
+            # Load first and last frame (same image for seamless loop)
             if image_path and os.path.exists(image_path):
-                print(f"Using reference image for video: {image_path}")
-                img = Image.open(image_path)
-                # Use image as reference for video generation
-                contents = [img, prompt]
+                print(f"Using reference image for first and last frame: {image_path}")
+                first_frame = Image.open(image_path)
+                last_frame = Image.open(image_path)
             else:
-                contents = [prompt]
+                raise ValueError("Image path is required for Veo video generation")
             
             print(f"Calling client.models.generate_videos with {target_model}...")
             
-            # Use the correct method for Veo models: generate_videos
-            response = self.client.models.generate_videos(
+            # Generate video with first and last frame
+            operation = self.client.models.generate_videos(
                 model=target_model,
                 prompt=prompt,
-                config=video_config
+                image=first_frame,
+                config=types.GenerateVideosConfig(
+                    aspect_ratio="16:9",
+                    duration_seconds=8,
+                    last_frame=last_frame
+                ),
             )
             
-            # Extract video data from response
-            video_saved = False
+            # Poll the operation status until the video is ready
+            max_wait_time = 600  # 10 minutes
+            poll_interval = 10  # 10 seconds
+            elapsed = 0
             
-            # Check if this is a long-running operation (Veo generates async)
-            if hasattr(response, 'name') and 'operations/' in response.name:
-                print(f"Video generation is a long-running operation: {response.name}")
-                print("Waiting for video generation to complete...")
-                
-                # Poll the operation until it's done
-                max_wait_time = 600  # 10 minutes max
-                poll_interval = 10   # Check every 10 seconds
-                elapsed = 0
-                
-                operation = response
-                while not operation.done and elapsed < max_wait_time:
-                    # Use the time module that's already imported at the top
-                    import time as time_module
-                    time_module.sleep(poll_interval)
-                    elapsed += poll_interval
-                    
-                    # Refresh the operation object to get the latest status
-                    operation = self.client.operations.get(operation)
-                    
-                    if not operation.done:
-                        print(f"Still generating... ({elapsed}s elapsed)")
+            while not operation.done:
+                print(f"Waiting for video generation to complete... ({elapsed}s elapsed)")
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+                operation = self.client.operations.get(operation)
                 
                 if elapsed >= max_wait_time:
                     raise TimeoutError("Video generation timed out after 10 minutes")
-                
-                if operation.done:
-                    print("Video generation completed!")
-                    # Extract video from completed operation
-                    response = operation
             
-            # The response should have generated_videos attribute
-            if hasattr(response, 'response') and hasattr(response.response, 'generated_videos'):
-                # Response from completed operation
-                generated_videos = response.response.generated_videos
-                if generated_videos and len(generated_videos) > 0:
-                    video = generated_videos[0]
-                    # Download the video file
-                    if hasattr(video, 'video'):
-                        print(f"Downloading video to {output_path}...")
-                        self.client.files.download(file=video.video)
-                        video.video.save(output_path)
-                        print(f"Video saved to {output_path}")
-                        video_saved = True
-            elif hasattr(response, 'generated_videos') and response.generated_videos:
-                # Direct response (non-operation)
-                video = response.generated_videos[0]
-                if hasattr(video, 'video') and hasattr(video.video, 'video_bytes'):
-                    video_bytes = video.video.video_bytes
-                    with open(output_path, "wb") as f:
-                        f.write(video_bytes)
-                    print(f"Video saved to {output_path}")
-                    video_saved = True
-            elif hasattr(response, 'generated_video') and response.generated_video:
-                # Alternative structure
-                video_bytes = response.generated_video.video_bytes
-                with open(output_path, "wb") as f:
-                    f.write(video_bytes)
-                print(f"Video saved to {output_path}")
-                video_saved = True
-            elif hasattr(response, 'candidates') and response.candidates:
-                # Fallback: check candidates structure
-                parts = response.candidates[0].content.parts
-                for part in parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                         # Check mime type if available
-                         if part.inline_data.mime_type.startswith("video/"):
-                            with open(output_path, "wb") as f:
-                                f.write(part.inline_data.data)
-                            print(f"Video saved to {output_path}")
-                            video_saved = True
-                            break
+            print("Video generation completed!")
             
-            if not video_saved:
-                print(f"No video found in response: {response}")
-                raise ValueError("No video returned in response")
+            # Download the video
+            video = operation.response.generated_videos[0]
+            self.client.files.download(file=video.video)
+            video.video.save(output_path)
+            print(f"Video saved to {output_path}")
 
         except Exception as e:
             print(f"Error generating video: {e}")
+            raise e
+
+    def generate_seamless_loop_video(self, video_prompt: str, image_prompt: str, output_video_path: str, output_image_path: str, model_video: Optional[str] = None, model_image: Optional[str] = None) -> None:
+        """
+        Generates a seamless looping video by:
+        1. Generating an image directly using models.generate_images.
+        2. Using that image as both first/last frame for models.generate_videos.
+        3. Saving both outputs.
+        """
+        from .constants import GEMINI_VIDEO_MODEL, GEMINI_IMAGE_MODEL
+        
+        target_model_image = model_image if model_image else GEMINI_IMAGE_MODEL
+        target_model_video = model_video if model_video else GEMINI_VIDEO_MODEL
+        
+        print("Starting seamless loop video generation (Google Docs Pattern)...")
+
+        try:
+            time.sleep(self.delay)
+            
+            # 1. Generate Image
+            print(f"Step 1: Generating image with {target_model_image}...")
+            image_response = self.client.models.generate_images(
+                model=target_model_image,
+                prompt=image_prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    aspect_ratio="16:9",
+                )
+            )
+            
+            if not image_response.generated_images:
+                raise ValueError("No images generated")
+                
+            generated_image_obj = image_response.generated_images[0]
+            image_file = generated_image_obj.image
+            
+            # Save the image
+            with open(output_image_path, "wb") as f:
+                f.write(image_file.image_bytes)
+            print(f"Base image saved to {output_image_path}")
+
+            # 2. Generate Video
+            print(f"Step 2: Generating video with {target_model_video} using generated image as first/last frame...")
+            
+            video_operation = self.client.models.generate_videos(
+                model=target_model_video,
+                prompt=video_prompt,
+                image=image_file,      # Use the image object directly
+                config=types.GenerateVideosConfig(
+                    aspect_ratio="16:9",
+                    duration_seconds=8,
+                    last_frame=image_file  # Use the image object directly
+                ),
+            )
+            
+            # Poll for completion
+            max_wait_time = 600  # 10 minutes
+            poll_interval = 10
+            elapsed = 0
+            
+            while not video_operation.done:
+                print(f"Waiting for seamless video generation... ({elapsed}s elapsed)")
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+                video_operation = self.client.operations.get(video_operation)
+                
+                if elapsed >= max_wait_time:
+                    raise TimeoutError("Video generation timed out")
+            
+            print("Video generation completed!")
+            
+            # Download and save video
+            video_result = video_operation.response.generated_videos[0]
+            self.client.files.download(file=video_result.video)
+            video_result.video.save(output_video_path)
+            print(f"Seamless video saved to {output_video_path}")
+
+        except Exception as e:
+            print(f"Error in seamless loop generation: {e}")
             raise e

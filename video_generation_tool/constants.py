@@ -24,11 +24,11 @@ GEMINI_TEXT_ADVANCED_MODEL = "gemini-3-pro-preview"
 # GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image-preview"
 #GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
 # GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview"
-GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"  # nano banana
+GEMINI_IMAGE_MODEL = "imagen-4.0-fast-generate-001"
 #GEMINI_IMAGE_MODEL = "imagen-4.0-fast-generate-001"
 # GEMINI_IMAGE_MODEL = "imagen-3.0-generate-002"
-GEMINI_IMAGE_ADVANCED_MODEL = "gemini-3-pro-image-preview"
-GEMINI_VIDEO_MODEL = "veo-3.1-generate-preview"
+GEMINI_IMAGE_ADVANCED_MODEL = "imagen-4.0-generate-001"
+GEMINI_VIDEO_MODEL = "veo-3.1-fast-generate-preview"
 
 IMAGE_STYLE_PROMPT = (
     "The style should be realistic high quality historical illustration, painting, "

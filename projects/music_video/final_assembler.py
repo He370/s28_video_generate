@@ -13,48 +13,107 @@ OUTPUT_VIDEO = 'final_video.mp4'
 
 
 
-def assemble_final_video(audio_file: str, video_loop: str, output_video: str, duration_hours: int = 1):
+def assemble_final_video(audio_file: str, video_loop: str, output_video: str, duration_hours: int = 1, intro_video: str = None):
     if not os.path.exists(audio_file):
         logging.error(f"Audio file {audio_file} not found.")
         return
     if not os.path.exists(video_loop):
         logging.error(f"Video loop {video_loop} not found.")
         return
+    if intro_video and not os.path.exists(intro_video):
+        logging.error(f"Intro video {intro_video} not found. Proceeding without it.")
+        intro_video = None
 
     logging.info(f"Assembling final video with ffmpeg for {duration_hours} hours...")
 
     duration_seconds = duration_hours * 3600
-
-    # Command explanation:
-    # -stream_loop -1 -i video: Infinite video loop
-    # -stream_loop -1 -i audio: Infinite audio loop (just in case audio is slightly short, though assembler should handle it)
-    # -t duration: Strict duration cut
-    # -c:v copy: Copy video stream (fast)
-    # -c:a copy: Copy audio stream (fast)
-    # Note: re-encoding might be safer for strict -t if keyframes don't align, but copy is much faster.
     
-    cmd = [
-        "ffmpeg",
-        "-stream_loop", "-1",
-        "-i", video_loop,
-        "-stream_loop", "-1", 
-        "-i", audio_file,
-        "-map", "0:v",
-        "-map", "1:a",
-        "-c:v", "copy",
-        "-c:a", "copy",
-        "-t", str(duration_seconds),
-        "-y",
-        output_video
-    ]
+    # Get duration of video loop and intro to calculate loops needed
+    try:
+        # Get video loop duration
+        result = subprocess.run([
+            "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", video_loop
+        ], capture_output=True, text=True, check=True)
+        loop_duration = float(result.stdout.strip())
+        
+        intro_duration = 0
+        if intro_video:
+            result = subprocess.run([
+                "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", intro_video
+            ], capture_output=True, text=True, check=True)
+            intro_duration = float(result.stdout.strip())
+            
+    except Exception as e:
+        logging.error(f"Failed to get video durations: {e}")
+        return
+
+    # If intro_video is provided, we use the concat demuxer
+    if intro_video:
+        # Calculate how many loops we need
+        remaining_duration = duration_seconds - intro_duration
+        if remaining_duration < 0:
+            remaining_duration = 0
+            
+        loops_needed = int(remaining_duration / loop_duration) + 1
+        
+        logging.info(f"Intro duration: {intro_duration}s, Loop duration: {loop_duration}s")
+        logging.info(f"Repeats needed: {loops_needed}")
+        
+        # Create concat file
+        concat_file = os.path.join(os.path.dirname(output_video), "concat_list.txt")
+        with open(concat_file, "w") as f:
+            f.write(f"file '{intro_video}'\n")
+            for _ in range(loops_needed):
+                f.write(f"file '{video_loop}'\n")
+        
+        cmd = [
+            "ffmpeg",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", concat_file,
+            "-stream_loop", "-1",
+            "-i", audio_file,
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
+            "-c:a", "aac",     # Re-encode audio to AAC to ensure proper looping and timestamping
+            "-b:a", "192k",    # Good quality audio
+            "-t", str(duration_seconds),
+            "-y",
+            output_video
+        ]
+        
+    else:
+        # Traditional stream_loop approach
+        cmd = [
+            "ffmpeg",
+            "-stream_loop", "-1",
+            "-i", video_loop,
+            "-stream_loop", "-1", 
+            "-i", audio_file,
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-t", str(duration_seconds),
+            "-y",
+            output_video
+        ]
     
     try:
         subprocess.run(cmd, check=True)
         logging.info(f"Final video created at {output_video}")
+        # Cleanup
+        if intro_video and os.path.exists(concat_file):
+            os.remove(concat_file)
+            
     except subprocess.CalledProcessError as e:
         logging.error(f"FFmpeg failed: {e}")
 
 if __name__ == "__main__":
-    assemble_final_video('final_audio.mp3', 'visuals_loop.mp4', 'final_video.mp4')
+    # Test
+    # assemble_final_video('final_audio.mp3', 'visuals_loop.mp4', 'final_video.mp4', intro_video='visuals_loop_with_title.mp4')
+    pass
 
 

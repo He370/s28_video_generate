@@ -103,14 +103,20 @@ def main():
         final_video = os.path.join(video_dir, "final_video.mp4")
         thumbnail = os.path.join(assets_dir, "thumbnail.jpg")
         seamless_loop = os.path.join(assets_dir, "visuals_loop_seamless.mp4")
-        final_video_with_title = os.path.join(video_dir, "final_video_with_title.mp4")
         
         try:
             # Step 1: Idea Generation
             if not os.path.exists(idea_file):
                 logging.info("Step 1: Generating Idea...")
-                # Pass avoid_genres here
-                idea = idea_generator.generate_idea_to_file(idea_file, cover_image, existing_titles=existing_titles, avoid_genres=avoid_genres, dev_mode=args.dev)
+                # Pass avoid_genres here, and skip image generation if using Veo (will be done in video loop step)
+                idea = idea_generator.generate_idea_to_file(
+                    idea_file, 
+                    cover_image, 
+                    existing_titles=existing_titles, 
+                    avoid_genres=avoid_genres, 
+                    dev_mode=args.dev,
+                    skip_image_generation=args.enable_veo
+                )
                 if not idea:
                     raise Exception("Failed to generate idea")
                 
@@ -138,14 +144,8 @@ def main():
             else:
                 logging.info("Idea already generated.")
             
-            # Step 1b: Generate Thumbnail
-            if not os.path.exists(thumbnail):
-                logging.info("Step 1b: Generating Thumbnail...")
-                thumbnail_generator.generate_thumbnail(idea_file, cover_image, thumbnail)
-                if not os.path.exists(thumbnail):
-                    logging.warning("Failed to generate thumbnail, continuing anyway...")
-            else:
-                logging.info("Thumbnail already exists.")
+            # Step 1b: Generate Thumbnail MOVED to after Step 2
+            # because Step 2 might generate the base image if using Veo
 
             # Step 2: Video Loop
             if not os.path.exists(video_loop):
@@ -156,18 +156,42 @@ def main():
             else:
                 logging.info("Video loop already exists.")
             
-            # Step 2b: Create Seamless Loop (only if using Veo)
-            if args.enable_veo and not os.path.exists(seamless_loop):
+            # Step 1b: Generate Thumbnail (Moved here)
+            if not os.path.exists(thumbnail):
+                logging.info("Step 1b: Generating Thumbnail...")
+                thumbnail_generator.generate_thumbnail(idea_file, cover_image, thumbnail)
+                if not os.path.exists(thumbnail):
+                    logging.warning("Failed to generate thumbnail, continuing anyway...")
+            else:
+                logging.info("Thumbnail already exists.")
+
+            # Step 2b: Create Seamless Loop (Legacy "Cut, Swap, Fade" technique)
+            # Now applied to Veo videos as well to ensure seamlessness
+            if not os.path.exists(seamless_loop):
                 logging.info("Step 2b: Creating Seamless Loop...")
                 seamless_loop_processor.create_seamless_loop(video_loop, seamless_loop)
                 if not os.path.exists(seamless_loop):
                     logging.warning("Failed to create seamless loop, using original video loop")
                     seamless_loop = video_loop
             else:
-                if args.enable_veo:
-                    logging.info("Seamless loop already exists.")
-                # Use original video loop if not using Veo
-                seamless_loop = video_loop
+                # If file exists, we use it. 
+                pass
+            
+            # Step 2c: Add Title Overlay to Loop (for intro only)
+            video_loop_with_title = os.path.join(assets_dir, "visuals_loop_with_title.mp4")
+            if not os.path.exists(video_loop_with_title):
+                logging.info("Step 2c: Adding Title Overlay to 8-second loop...")
+                from projects.music_video.title_overlay import add_title_overlay
+                try:
+                    success = add_title_overlay(idea_file, seamless_loop, video_loop_with_title)
+                    if success:
+                        logging.info(f"Title overlay added to loop")
+                    else:
+                        logging.warning("Failed to add title overlay, intro will correspond to loop")
+                except Exception as e:
+                    logging.warning(f"Error adding title overlay: {e}. Intro will correspond to loop.")
+            else:
+                logging.info("Loop with title already exists.")
 
             # Step 3: Music Selection
             if not os.path.exists(selected_tracks):
@@ -192,21 +216,24 @@ def main():
             if not os.path.exists(final_video):
                 logging.info("Step 5: Assembling Final Video...")
                 duration = video.get('duration_hours', 1) # Ensure duration is available here
-                final_assembler.assemble_final_video(final_audio, seamless_loop, final_video, duration_hours=duration)
+                
+                # Check if we have a titled intro video
+                intro_video = None
+                if os.path.exists(video_loop_with_title):
+                    intro_video = video_loop_with_title
+                    
+                final_assembler.assemble_final_video(
+                    final_audio, 
+                    seamless_loop, 
+                    final_video, 
+                    duration_hours=duration,
+                    intro_video=intro_video
+                )
+                
                 if not os.path.exists(final_video):
                      raise Exception("Failed to assemble final video")
             else:
                 logging.info("Final video already exists.")
-            
-            # Step 6: Add Title Overlay
-            if not os.path.exists(final_video_with_title):
-                logging.info("Step 6: Adding Title Overlay...")
-                title_overlay.add_title_overlay(idea_file, final_video, final_video_with_title)
-                if not os.path.exists(final_video_with_title):
-                    logging.warning("Failed to add title overlay, using video without title")
-                    final_video_with_title = final_video
-            else:
-                logging.info("Final video with title already exists.")
 
             # Success! Update status
             logging.info(f"Video {index} completed successfully!")
@@ -220,7 +247,7 @@ def main():
                 videos_json_path,
                 index,
                 "generated",
-                output_path=final_video_with_title,
+                output_path=final_video,
                 date_completed=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             )
             processed_count += 1

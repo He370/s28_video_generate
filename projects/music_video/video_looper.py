@@ -36,6 +36,7 @@ def generate_video_loop(idea_file: str, output_video_file: str, dev_mode: bool =
         video_prompt = f"A relaxing scene of {idea.get('theme', 'nature')}. {idea.get('description', '')}"
 
     image_path = idea.get('cover_image_path')
+    image_prompt = idea.get('image_prompt')
     
     if not use_veo:
         logging.info("Video generation using static image loop (Veo disabled).")
@@ -76,13 +77,21 @@ def generate_video_loop(idea_file: str, output_video_file: str, dev_mode: bool =
     client = GeminiClient(mode="dev" if dev_mode else "prod")
     
     # Using Veo model
-    from video_generation_tool.constants import GEMINI_VIDEO_MODEL
+    from video_generation_tool.constants import GEMINI_VIDEO_MODEL, GEMINI_IMAGE_MODEL
     
-    client.generate_video(
-        prompt=video_prompt,
-        output_path=output_video_file,
-        model=GEMINI_VIDEO_MODEL,
-        image_path=image_path
+    # New flow: Generate both image and video in one go for seamless looping
+    # This ensures the image used for the video is exactly the one we have as thumbnail
+    if not image_path:
+        logging.error("Cover image path missing in idea.json")
+        return
+
+    client.generate_seamless_loop_video(
+        video_prompt=video_prompt,
+        image_prompt=image_prompt,
+        output_video_path=output_video_file,
+        output_image_path=image_path,
+        model_video=GEMINI_VIDEO_MODEL,
+        model_image=GEMINI_IMAGE_MODEL
     )
     
     # Post-process Veo output to ensure 1080p

@@ -40,6 +40,10 @@ Use the `run.sh` script to generate a new video.
 You can also run `main.py` directly:
 
 ```bash
-# Add a new 1-hour video to the queue and process it
-./venv/bin/python projects/music_video/main.py --add-new --hours 1 --count 1
+# Add a new 2-hour video to the queue and process it
+./venv/bin/python projects/music_video/main.py --add-new --hours 2 --count 1
+
+# Add a new 2-hour video to the queue and process it with Veo3 video generation
+./venv/bin/python projects/music_video/main.py --add-new --enable-veo --hours 2 --count 1
+
 ```

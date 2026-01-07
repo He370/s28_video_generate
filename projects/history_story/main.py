@@ -148,9 +148,9 @@ def generate_video_for_item(
                 if is_title:
                     if story_type == 'historical_personage':
                         title_prompt_request = f"""
-                        Create a prompt for a poster style image for a biography about "{topic}".
+                        Create a prompt for a modern poster style image for a biography about "{topic}".
                         The image should feature the historical figure prominently, looking epic and legendary.
-                        The composition should be vertical or suitable for a poster.
+                        The composition should be vertical or suitable for a poster with a modern design and attractive art style.
                         
                         Style: {image_style}
                         """
