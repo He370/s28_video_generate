@@ -199,3 +199,40 @@ if __name__ == "__main__":
     Image.new("RGB", (1920, 1080), (50, 50, 50)).save(dummy_path)
     
     overlay_scp_title(dummy_path, "SCP-178: The 3D Specs", "/tmp/scp_test_result.png")
+
+def create_thumbnail(source_path: str, thumbnail_path: str, max_size_bytes: int = 2000000):
+    """
+    Create a thumbnail from the source image that fits within the max_size_bytes.
+    Converts to JPEG and adjusting quality/size if needed.
+    """
+    try:
+        img = Image.open(source_path).convert("RGB")
+        
+        # Start with high quality
+        quality = 95
+        
+        while True:
+            img.save(thumbnail_path, "JPEG", quality=quality)
+            
+            file_size = os.path.getsize(thumbnail_path)
+            if file_size < max_size_bytes:
+                print(f"Created thumbnail at {thumbnail_path} ({file_size/1024:.1f} KB)")
+                return True
+            
+            # Reduce quality
+            quality -= 5
+            if quality < 30:
+                # If quality gets too low, start resizing
+                print(f"Quality low ({quality}), resizing image...")
+                width, height = img.size
+                img = img.resize((int(width * 0.8), int(height * 0.8)), Image.Resampling.LANCZOS)
+                quality = 80 # Reset quality for resized image
+            
+            if quality < 10 and img.size[0] < 300:
+                print("Could not reduce file size enough.")
+                return False
+                
+    except Exception as e:
+        print(f"Error creating thumbnail: {e}")
+        return False
+

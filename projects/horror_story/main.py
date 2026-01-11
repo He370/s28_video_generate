@@ -246,9 +246,21 @@ def generate_video_for_item(
                         )
                         if not overlay_success:
                             print("  Warning: SCP Title Overlay failed. Using raw image.")
+                        
+                        # Create thumbnail for upload
+                        thumbnail_path = os.path.join(assets_dir, "thumbnail.jpg")
+                        print(f"  Creating thumbnail at {thumbnail_path}...")
+                        scp_title_generator.create_thumbnail(img_path, thumbnail_path)
                 
                 if not success:
                     print(f"  Failed to generate image for scene {i}.")
+            
+            # Ensure thumbnail exists for SCP (Scene 0)
+            if i == 0 and story_type == 'scp_foundation' and os.path.exists(img_path):
+                thumbnail_path = os.path.join(assets_dir, "thumbnail.jpg")
+                if not os.path.exists(thumbnail_path):
+                    print(f"  Creating missing thumbnail at {thumbnail_path}...")
+                    scp_title_generator.create_thumbnail(img_path, thumbnail_path)
             
             # Audio
             if os.path.exists(audio_path):
