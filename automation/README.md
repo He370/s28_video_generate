@@ -39,59 +39,37 @@ chmod +x automation/schedules/*.sh
 
 ## Mac Cron Setup
 
-To schedule the jobs to run automatically on your Mac, use `crontab`.
+We use a Python script to manage cron jobs to ensure consistency and ease of updates.
 
-1.  **Open Crontab Editor**:
-    ```bash
-    crontab -e
-    ```
+### 1. Define Schedules
 
-2.  **Add Schedule Entries**:
-    Add the following lines to schedule the jobs.
-    
-    **Important**: You must provide the full path to the scripts.
+All cron schedules are defined in `automation/schedules/cron_schedules.txt`.
 
-    ```bash
-# History Story 1 - Daily at 2:00 AM
+To add or modify a job:
+1.  Open `automation/schedules/cron_schedules.txt`.
+2.  Add your cron entry. Lines starting with `#` are comments.
+
+Example entry:
+```text
+# History Story - Daily at 2:00 AM
 0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_biography.sh"
+```
 
-# 02:00 AM - Nightly Schedule (Horror Story)
-0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0200_schedule.sh >> /tmp/cron_0200.log 2>&1
+### 2. Apply Schedules
 
-# 04:00 AM - Nightly Schedule (Music Videos)
-0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0400_schedule.sh >> /tmp/cron_0400.log 2>&1
+Run the `set_cron.py` script to update your system's crontab based on the text file. This script is idempotent (safe to run multiple times).
 
-# 06:00 AM - History Story (What If)
-0 6 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/0600_schedule.sh >> /tmp/cron_0600.log 2>&1
+```bash
+python3 automation/set_cron.py
+```
 
-# 10:00 AM - White Noise (1h)
-40 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1000_schedule.sh >> /tmp/cron_1000.log 2>&1
+### 3. Verify
 
-# 12:00 PM - Today History
-0 12 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1200_schedule.sh >> /tmp/cron_1200.log 2>&1
+List your cron jobs to ensure they are saved:
 
-# 02:00 PM - History Story (Mystery)
-0 14 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1400_schedule.sh >> /tmp/cron_1400.log 2>&1
-
-# 04:00 PM - White Noise (8h)
-0 16 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1600_schedule.sh >> /tmp/cron_1600.log 2>&1
-
-# 06:00 PM - White Noise (3h)
-0 18 * * * /Users/leo/Documents/antigravity/s28_video_generate/automation/schedules/1800_schedule.sh >> /tmp/cron_1800.log 2>&1
-    ```
-
-    *Note: We use the virtual environment's python executable to ensure all dependencies are available.*
-    *Ensure the paths match your actual project location.*
-
-3.  **Save and Exit**:
-    - If using `vi`/`vim` (default): Press `Esc`, type `:wq`, and press `Enter`.
-    - If using `nano`: Press `Ctrl+O`, `Enter`, then `Ctrl+X`.
-
-4.  **Verify**:
-    List your cron jobs to ensure they are saved:
-    ```bash
-    crontab -l
-    ```
+```bash
+crontab -l
+```
 
 ## Mac Permissions (Full Disk Access)
 

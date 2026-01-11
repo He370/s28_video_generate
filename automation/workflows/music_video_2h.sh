@@ -17,7 +17,7 @@ echo "Starting Music Video 2 Hour Workflow..."
 # Note: --enable-veo is NOT used by default to save costs/time (uses static image loop).
 # Add --enable-veo if dynamic video generation is desired.
 echo "Step 1: Generating 2-hour music video..."
-python3 projects/music_video/main.py --add-new --count 1 --hours 2
+python3 projects/music_video/main.py --add-new --enable-veo --count 1 --hours 2
 
 # 2. Upload Video
 echo "Step 2: Uploading video..."

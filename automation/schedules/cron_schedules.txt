@@ -1,0 +1,5 @@
+# History Story Biography - Daily at 2:00 AM
+0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_biography.sh"
+
+# Music Video 2h - Daily at 4:00 AM
+0 4 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project music_video --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/music_video_2h.sh"
