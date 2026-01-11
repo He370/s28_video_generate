@@ -18,13 +18,15 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     
     type_instruction = ""
     if target_type == "all":
-        target_type = random.choice(["rules_horror", "urban_legend"])
+        target_type = random.choice(["rules_horror", "urban_legend", "scp_foundation"])
         print(f"Randomly selected type: {target_type}")
 
     if target_type == "rules_horror":
         type_instruction = 'Focus ONLY on "Rules Horror" stories (a list of creepy rules for a specific situation or location).'
     elif target_type == "urban_legend":
         type_instruction = 'Focus ONLY on "Urban Legends" (modern folklore, scary stories passed around).'
+    elif target_type == "scp_foundation":
+        type_instruction = 'Focus ONLY on "SCP Foundation" entries (clinical, scientific reports about anomalous entities). Title MUST be in format "SCP-XXX: The [Name]".'
 
     prompt = f"""
     Generate {count} unique and terrifying video ideas for a "Horror Story" channel.
@@ -40,7 +42,7 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
     Output strictly in JSON format as a list of objects:
     [
         {{
-            "topic": "The Topic Title",
+            "topic": "The Topic Title (e.g., SCP-087: The Stairwell)",
             "type": "{target_type}",
             "description": "A brief description of the horror concept."
         }},
@@ -53,7 +55,7 @@ def generate_ideas(client: GeminiClient, count: int, existing_topics: List[str],
         ideas = json.loads(response)
         # Ensure type is set correctly in case the model missed it or we are in 'all' mode
         for idea in ideas:
-            if 'type' not in idea or idea['type'] not in ["rules_horror", "urban_legend"]:
+            if 'type' not in idea or idea['type'] not in ["rules_horror", "urban_legend", "scp_foundation"]:
                  idea['type'] = target_type
         return ideas
     except Exception as e:
@@ -64,7 +66,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate video ideas for Horror Story project.")
     parser.add_argument("--count", type=int, default=5, help="Number of ideas to generate")
     parser.add_argument("--mode", choices=["prod", "dev"], default="dev", help="Mode: 'prod' or 'dev'")
-    parser.add_argument("--type", choices=["all", "rules_horror", "urban_legend"], default="all", help="Type of stories to generate")
+    parser.add_argument("--type", choices=["all", "rules_horror", "urban_legend", "scp_foundation"], default="all", help="Type of stories to generate")
     parser.add_argument("--language", type=str, default="English", help="Language for the video ideas")
     args = parser.parse_args()
     

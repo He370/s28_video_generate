@@ -1,3 +1,6 @@
+# SCP Story Daily - Daily at 0:00 AM
+0 0 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project scp_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/scp_story_daily.sh"
+
 # History Story Biography - Daily at 2:00 AM
 0 2 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project history_story --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/history_story_biography.sh"
 

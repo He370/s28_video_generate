@@ -35,7 +35,9 @@ ENV/
 
 # Project Specific
 automation/logs/
+archive/
 output/
+output_archive/
 projects/*/output/
 *.mp4
 *.mp3
@@ -48,6 +50,7 @@ projects/*/output/
 temp/
 tmp/
 videos.json
+videos_archieve_2026_01_10.json
 client_secrets*.json
 debug_log*.txt
 *.pickle

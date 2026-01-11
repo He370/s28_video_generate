@@ -14,6 +14,7 @@ from video_generation_tool.video_maker import VideoMaker
 from video_generation_tool.utils import ensure_dir
 from video_generation_tool import batch_processor
 from video_generation_tool.metadata_generator import MetadataGenerator
+import scp_title_generator
 
 def generate_video_for_item(
     video_item: Dict,
@@ -28,9 +29,9 @@ def generate_video_for_item(
     """
     video_index = video_item.get('index')
     topic = video_item.get('topic', 'Unknown Topic')
-    story_type = video_item.get('type', 'urban_legend') # 'rules_horror' or 'urban_legend'
+    story_type = video_item.get('type', 'urban_legend') # 'rules_horror', 'urban_legend', 'scp_foundation'
     debug_scene_limit = video_item.get('debug_scene_limit', None)
-    image_style = video_item.get('image_style', 'dark, eerie, cinematic horror, photorealistic')
+    image_style = video_item.get('image_style', 'dark, eerie, cinematic horror, photorealistic, 1080p, 4k, high resolution')
     language = video_item.get('language', 'English')
     
     # Create video-specific output directory
@@ -72,6 +73,15 @@ def generate_video_for_item(
                 Structure it as a list of rules with brief explanations or warnings for each.
                 Start with a brief intro setting the scene, then the rules, and a chilling conclusion.
                 """
+                word_limit = 600
+            elif story_type == 'scp_foundation':
+                word_limit = 1800
+                context = f"""
+                Write an SCP Foundation entry for: "{topic}".
+                Format it like a clinical report (Item #: SCP-XXX, Object Class: [Safe/Euclid/Keter], Special Containment Procedures, Description).
+                The tone should be cold, scientific, and detached, but describing horrific anomalies.
+                Include an "Addendum" or "Incident Report" sections to add narrative horror.
+                """
             else: # urban_legend
                 context = f"""
                 Tell the terrifying urban legend of: "{topic}".
@@ -84,7 +94,7 @@ def generate_video_for_item(
                 context=context,
                 language=language,
                 category="Horror Story",
-                word_limit=600
+                word_limit=word_limit
             )
             
             if not script:
@@ -140,17 +150,27 @@ def generate_video_for_item(
                     styled_text = prompt_context
                 
                 if is_title:
-                    title_prompt_request = f"""
-                    Create a prompt for a terrifying title card image for a horror video about "{topic}".
-                    The image should be visually arresting and summarize the theme ({story_type}).
-                    
-                    Style: {image_style}
-                    """
-                    image_prompt = client.generate_image_prompt(title_prompt_request)
-                    
-                    # Add text instruction for title
-                    text_instruction = f"\n\nIMPORTANT: Create a cinematic title card. Include the text '{topic}' centered. Font should be consistent with the horror style (e.g., dripping blood, jagged letters)."
-                    image_prompt += text_instruction
+                    if story_type == 'scp_foundation':
+                        # For SCP, we just want the pure image, text is added via overlay
+                        image_prompt = client.generate_image_prompt(f"""
+                        Create a prompt for a high-quality, photorealistic image representing the SCP entity or object described in "{topic}".
+                        Detailed, scientific but ominous photography style.
+                        Type: {story_type}
+                        Style: {image_style}
+                        DO NOT include any text in the image prompt instructions.
+                        """)
+                    else:
+                        title_prompt_request = f"""
+                        Create a prompt for a terrifying title card image for a horror video about "{topic}".
+                        The image should be visually arresting and summarize the theme ({story_type}).
+                        
+                        Style: {image_style}
+                        """
+                        image_prompt = client.generate_image_prompt(title_prompt_request)
+                        
+                        # Add text instruction for title
+                        text_instruction = f"\n\nIMPORTANT: Create a cinematic title card. Include the text '{topic}' centered. Font should be consistent with the horror style (e.g., dripping blood, jagged letters)."
+                        image_prompt += text_instruction
                 else:
                     image_prompt = client.generate_image_prompt(styled_text)
                 
@@ -214,6 +234,18 @@ def generate_video_for_item(
                     max_times_gen_new_prompt=1,
                     model=model_to_use
                 )
+                
+                if success:
+                    # Post-processing for SCP Title
+                    if i == 0 and story_type == 'scp_foundation':
+                        print("  Applying SCP Title Overlay...")
+                        overlay_success = scp_title_generator.overlay_scp_title(
+                            base_image_path=img_path,
+                            title_text=topic,
+                            output_path=img_path # Overwrite
+                        )
+                        if not overlay_success:
+                            print("  Warning: SCP Title Overlay failed. Using raw image.")
                 
                 if not success:
                     print(f"  Failed to generate image for scene {i}.")

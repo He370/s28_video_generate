@@ -60,7 +60,7 @@ Example entry:
 Run the `set_cron.py` script to update your system's crontab based on the text file. This script is idempotent (safe to run multiple times).
 
 ```bash
-python3 automation/set_cron.py
+venv/bin/python automation/set_cron.py
 ```
 
 ### 3. Verify
