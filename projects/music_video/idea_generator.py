@@ -160,17 +160,21 @@ The visual style must match the "Dark Biophilic Luxury" aesthetic:
 6.  **"tags"**: 10-15 comma-separated high-volume keywords for SEO.
 
 7.  **"image_prompt"**: (For Imagen 4)
-        * Structure: [Architecture/Subject] + [Environment/Weather] + [Lighting/Color] + [Material Details] + [Tech Specs].
+        * Structure: [Architecture/Space Type] + [Contextual Interior Details] + [Environment/Weather] + [Lighting/Color] + [Material Details] + [Tech Specs].
         * **Crucial:** Focus on "Looking from inside out". Dark marble or wood textures. **Glass texture is key: specify "wet glass with condensation" or "rain-speckled window" rather than just "rain".**
+        * Requirement for [Contextual Interior Details]: DO NOT produce empty rooms. You must creatively populate the space with 2-3 distinct items appropriate for the specific room type.
+            ** If Study: Add items like "scattered blueprints," "vintage telescope," "stacked leather books," or "mechanical keyboard."**
+            ** If Lounge: Add items like "plush velvet cushions," "crystal whiskey decanter," "cashmere throw blanket," or "low-profile coffee table."**
+            ** If Bedroom: Add "rumpled silk sheets," "reading glasses on nightstand," or "soft slippers."**
         * Keywords to force: "Unreal Engine 5, 8k, volumetric fog, hyper-realistic, interior design, moody lighting".
         * Example: "A hyper-realistic wide shot of a luxury brutalist study room carved into a cliffside cave... Outside a massive glass wall, a stormy ocean crashes... **Glass pane is covered in detailed wet droplets.** Interior lit by a warm vintage desk lamp... Dark teal and amber color grading..."
 
 8.  **"video_prompt"**: (For Veo 3 - Image-to-Video)
-        * **Structure:** Describe motion in layers, but prioritize **SLOWNESS** and **GENTLENESS**:
-            1.  **Background (Nature):** - IF OCEAN: "Waves rolling slowly and rhythmically."
-                - IF FOREST/TREES: "Branches swaying VERY GENTLY in a light breeze," "Fog drifting LAZILY and SLOWLY." (Avoid "blowing" or "fast").
-                - **Key Instruction:** "The motion must be incredibly slow and hypnotic, like a living painting."
-            2.  **Foreground (Texture):** - "Static condensation on glass," "Shimmering wet texture," "Subtle refraction." (NO sliding water, NO fast rain).
+        * **Structure:** Describe motion in layers, but prioritize **GENTLENESS**:
+            1.  **Background (Nature/The Dynamic Layer):** 
+                - IF OCEAN: "Heavy ocean swells rolling and crashing continuously in slow motion."
+                - IF FOREST/TREES: "Branches swaying GENTLY in a light breeze," "Fog drifting LAZILY and SLOWLY." (Avoid "blowing" or "fast").
+            2.  **Foreground (Texture/The Static Layer):** - "Static condensation on glass," "Shimmering wet texture," "Subtle refraction." (NO sliding water, NO fast rain).
             3.  **Interior (Vibe):** "Candle flame flickering softly," "Steam rising slowly."
         * **Speed Control:** EXPLICITLY specify: "**Slow motion**, **time-stretched**, **dreamy atmosphere**, **60fps converted to 24fps**."
         * **Camera:** STRICTLY "Static Camera" or "Tripod Shot".

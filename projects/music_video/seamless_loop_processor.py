@@ -3,8 +3,34 @@ import sys
 import logging
 import subprocess
 
+
+import shutil
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_binary_path(binary_name):
+    """Find the absolute path to a binary, with specific checks for Homebrew."""
+    path = shutil.which(binary_name)
+    if path:
+        return path
+    
+    # Common fallback locations for Mac (especially Homebrew on Apple Silicon)
+    possible_paths = [
+        f"/opt/homebrew/bin/{binary_name}",
+        f"/usr/local/bin/{binary_name}",
+        f"/usr/bin/{binary_name}"
+    ]
+    
+    for p in possible_paths:
+        if os.path.exists(p):
+            return p
+            
+    return binary_name
+
+# Define command paths globally
+FFMPEG_CMD = get_binary_path("ffmpeg")
+FFPROBE_CMD = get_binary_path("ffprobe")
 
 
 def create_seamless_loop(input_video: str, output_video: str, crossfade_duration: float = 0.5):
@@ -34,7 +60,7 @@ def create_seamless_loop(input_video: str, output_video: str, crossfade_duration
     # Get video duration to verify it's 8 seconds
     try:
         probe_cmd = [
-            "ffprobe", "-v", "error",
+            FFPROBE_CMD, "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
             input_video
@@ -62,7 +88,7 @@ def create_seamless_loop(input_video: str, output_video: str, crossfade_duration
         
         # Extract first half (0 to split_point)
         cmd_first = [
-            "ffmpeg", "-y",
+            FFMPEG_CMD, "-y",
             "-i", input_video,
             "-t", str(split_point),
             "-c:v", "libx264",  # Re-encode to avoid format issues
@@ -74,7 +100,7 @@ def create_seamless_loop(input_video: str, output_video: str, crossfade_duration
         
         # Extract second half (split_point to end)
         cmd_second = [
-            "ffmpeg", "-y",
+            FFMPEG_CMD, "-y",
             "-i", input_video,
             "-ss", str(split_point),
             "-c:v", "libx264",  # Re-encode to avoid format issues
@@ -98,7 +124,7 @@ def create_seamless_loop(input_video: str, output_video: str, crossfade_duration
         transition_offset = split_point - crossfade_duration
         
         cmd_merge = [
-            "ffmpeg", "-y",
+            FFMPEG_CMD, "-y",
             "-i", temp_second_half,
             "-i", temp_first_half,
             "-filter_complex",
@@ -154,7 +180,7 @@ if __name__ == "__main__":
     if not os.path.exists(test_input):
         logging.info("Creating test video...")
         subprocess.run([
-            "ffmpeg", "-y",
+            FFMPEG_CMD, "-y",
             "-f", "lavfi",
             "-i", "color=c=blue:s=1920x1080:d=4",
             "-f", "lavfi",
