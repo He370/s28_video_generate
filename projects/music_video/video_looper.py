@@ -77,7 +77,7 @@ def generate_video_loop(idea_file: str, output_video_file: str, dev_mode: bool =
     client = GeminiClient(mode="dev" if dev_mode else "prod")
     
     # Using Veo model
-    from video_generation_tool.constants import GEMINI_VIDEO_MODEL, GEMINI_IMAGE_MODEL
+    from video_generation_tool.constants import GEMINI_VIDEO_MODEL, GEMINI_IMAGE_MODEL, GEMINI_IMAGE_MODEL_IMAGEN4
     
     # New flow: Generate both image and video in one go for seamless looping
     # This ensures the image used for the video is exactly the one we have as thumbnail
@@ -91,7 +91,7 @@ def generate_video_loop(idea_file: str, output_video_file: str, dev_mode: bool =
         output_video_path=output_video_file,
         output_image_path=image_path,
         model_video=GEMINI_VIDEO_MODEL,
-        model_image=GEMINI_IMAGE_MODEL
+        model_image=GEMINI_IMAGE_MODEL_IMAGEN4
     )
     
     # Post-process Veo output to ensure 1080p

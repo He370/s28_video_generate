@@ -240,7 +240,7 @@ def generate_idea_to_file(
         logging.info(f"Generated Idea: {idea['title']}")
 
         # Determine image model - prioritizing the advanced image model for quality covers
-        from video_generation_tool.constants import GEMINI_IMAGE_ADVANCED_MODEL
+        from video_generation_tool.constants import GEMINI_IMAGE_MODEL_IMAGEN4
 
         # Generate Cover Image
         image_prompt = idea.get('image_prompt')
@@ -253,7 +253,7 @@ def generate_idea_to_file(
                     client.generate_image(
                         prompt=image_prompt,
                         output_path=cover_image_file,
-                        model=GEMINI_IMAGE_ADVANCED_MODEL
+                        model=GEMINI_IMAGE_MODEL_IMAGEN4
                     )
                     idea['cover_image_path'] = os.path.abspath(cover_image_file)
                 except Exception as e:
