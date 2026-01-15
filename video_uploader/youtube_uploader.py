@@ -88,7 +88,7 @@ class YouTubeUploader:
         self.youtube = build(self.api_service_name, self.api_version, credentials=credentials)
         print("Authentication successful.")
 
-    def upload_video(self, file_path, title, description, category_id="22", privacy_status="private", tags=None, made_for_kids=False):
+    def upload_video(self, file_path, title, description, category_id="22", privacy_status="private", tags=None, made_for_kids=False, publish_at=None):
         """
         Uploads a video to YouTube with robust error handling and retries.
         """
@@ -101,9 +101,18 @@ class YouTubeUploader:
         print(f"Uploading {file_path} to YouTube...")
         print(f"Title: {title}")
         print(f"Privacy: {privacy_status}")
+        if publish_at:
+            print(f"Publish At: {publish_at}")
         
         if tags is None:
             tags = ['s28']
+
+        status_body = {
+            'privacyStatus': privacy_status,
+            'selfDeclaredMadeForKids': made_for_kids
+        }
+        if publish_at:
+            status_body['publishAt'] = publish_at
 
         body = {
             'snippet': {
@@ -112,10 +121,7 @@ class YouTubeUploader:
                 'tags': tags,
                 'categoryId': category_id
             },
-            'status': {
-                'privacyStatus': privacy_status,
-                'selfDeclaredMadeForKids': made_for_kids
-            }
+            'status': status_body
         }
 
         # Chunk size: 4MB

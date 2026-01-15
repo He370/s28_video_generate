@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import json
+import datetime
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -109,14 +110,42 @@ def main():
             if args.project_name == "music_video":
                 category_id = "10" # Music
             
+            # specific scheduling logic
+            privacy_status = args.privacy
+            publish_at = None
+            
+            if args.privacy == 'public':
+                print("Privacy is public, switching to private and scheduling...")
+                privacy_status = 'private'
+                
+                # Determine schedule time
+                # history -> 18:00, horror -> 20:00, music -> 07:00, default -> 18:00
+                target_hour = 18
+                if "history" in args.project_name.lower():
+                    target_hour = 18
+                elif "horror" in args.project_name.lower():
+                    target_hour = 20
+                elif "music" in args.project_name.lower():
+                    target_hour = 7
+                
+                now = datetime.datetime.now().astimezone()
+                target_time = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+                
+                if target_time < now:
+                    target_time += datetime.timedelta(days=1)
+                
+                publish_at = target_time.isoformat()
+                print(f"Scheduled for: {publish_at}")
+
             response = uploader.upload_video(
                 file_path=video_path,
                 title=title,
                 description=description,
-                privacy_status=args.privacy,
+                privacy_status=privacy_status,
                 tags=tags,
                 category_id=category_id,
-                made_for_kids=(args.project_name == 'classic_fairy_tale')
+                made_for_kids=(args.project_name == 'classic_fairy_tale'),
+                publish_at=publish_at
             )
             
             if response:
