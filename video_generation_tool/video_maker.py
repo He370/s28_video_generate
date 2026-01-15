@@ -9,14 +9,16 @@ class VideoMaker:
     def __init__(self, output_file: str = "history_video.mp4"):
         self.output_file = output_file
 
-    def apply_ken_burns_ffmpeg(self, image_path: str, duration: float, output_path: str):
+    def apply_ken_burns_ffmpeg(self, image_path: str, duration: float, output_path: str, effect_mode: str = None):
         """
-        Applies a smooth Ken Burns effect using FFmpeg's zoompan filter with upscaling.
+        Applies a smooth Ken Burns effect using FFmpeg's zoompan filter.
+        Supports random zoom in/out and panning directions.
         
         Args:
             image_path: Path to the input image
             duration: Duration of the effect in seconds
             output_path: Path for the output video file
+            effect_mode: Optional specific mode to use
             
         Returns:
             True if successful, False otherwise
@@ -27,53 +29,124 @@ class VideoMaker:
         fps = 60
         total_frames = int(duration * fps)
         
-        # Random zoom direction
-        zoom_direction = random.choice(['in', 'out'])
+        # Randomly select an effect mode if not provided
+        modes = [
+            'zoom_in_center', 'zoom_out_center', 
+            'pan_right', 'pan_left', 
+            'pan_up', 'pan_down',
+            'zoom_in_top_left', 'zoom_in_bottom_right',
+            'zoom_out_top_right', 'zoom_out_bottom_left'
+        ]
         
-        # Calculate zoom rate to complete exactly once during clip duration
-        # We want to zoom from 1.0 to 1.15 (or reverse) over the entire duration
-        # Zoom range: 0.15 (15% total zoom)
-        zoom_range = 0.15
-        zoom_increment = zoom_range / total_frames
-        
-        if zoom_direction == 'in':
-            # Zoom in: start at 1.0, end at 1.15
-            # Use min() to cap at 1.15 so it doesn't loop
-            zoom_expr = f'min(1+{zoom_increment}*on,1.15)'
+        if effect_mode and effect_mode in modes:
+            mode = effect_mode
         else:
-            # Zoom out: start at 1.15, end at 1.0
-            # Use max() to cap at 1.0 so it doesn't loop
-            zoom_expr = f'max(1.15-{zoom_increment}*on,1.0)'
+            mode = random.choice(modes)
         
-        # No pan - keep centered
-        x_expr = 'iw/2-(iw/zoom/2)'
-        y_expr = 'ih/2-(ih/zoom/2)'
+        # Zoom parameters
+        z_min = 1.0
+        z_max = 1.25  # 25% zoom
+        z_step = (z_max - z_min) / total_frames
         
+        # Default expressions
+        z_expr = f"{z_max}"  # distinct from zoom logic
+        x_expr = "0"
+        y_expr = "0"
+        
+        if mode == 'zoom_in_center':
+            z_expr = f"min({z_min}+{z_step}*on,{z_max})"
+            x_expr = "iw/2-(iw/zoom/2)"
+            y_expr = "ih/2-(ih/zoom/2)"
+            
+        elif mode == 'zoom_out_center':
+            z_expr = f"max({z_max}-{z_step}*on,{z_min})"
+            x_expr = "iw/2-(iw/zoom/2)"
+            y_expr = "ih/2-(ih/zoom/2)"
+            
+        elif mode == 'pan_right':
+            # Zoom fixed at z_max, pan x from 0 to max_x
+            z_expr = f"{z_max}"
+            max_x = f"iw-iw/{z_max}"
+            x_expr = f"({max_x})*(on/{total_frames})"
+            y_expr = f"ih/2-(ih/zoom/2)"
+            
+        elif mode == 'pan_left':
+            # Zoom fixed at z_max, pan x from max_x to 0
+            z_expr = f"{z_max}"
+            max_x = f"iw-iw/{z_max}"
+            x_expr = f"({max_x})*(1-on/{total_frames})"
+            y_expr = f"ih/2-(ih/zoom/2)"
+            
+        elif mode == 'pan_down':
+            # Zoom fixed at z_max, pan y from 0 to max_y
+            z_expr = f"{z_max}"
+            max_y = f"ih-ih/{z_max}"
+            x_expr = f"iw/2-(iw/zoom/2)"
+            y_expr = f"({max_y})*(on/{total_frames})"
+            
+        elif mode == 'pan_up':
+            # Zoom fixed at z_max, pan y from max_y to 0
+            z_expr = f"{z_max}"
+            max_y = f"ih-ih/{z_max}"
+            x_expr = f"iw/2-(iw/zoom/2)"
+            y_expr = f"({max_y})*(1-on/{total_frames})"
+
+        elif mode == 'zoom_in_top_left':
+            # Zoom in towards top-left (0,0)
+            z_expr = f"min({z_min}+{z_step}*on,{z_max})"
+            # x, y stay at 0 (top-left aligned) relative to the frame?
+            # Actually zoompan centers on x,y. 
+            # If x=0, y=0, it's top left.
+            x_expr = "0"
+            y_expr = "0"
+            
+        elif mode == 'zoom_in_bottom_right':
+            # Zoom in towards bottom-right
+            z_expr = f"min({z_min}+{z_step}*on,{z_max})"
+            x_expr = "iw-iw/zoom"
+            y_expr = "ih-ih/zoom"
+        
+        elif mode == 'zoom_out_top_right':
+            # Start zoomed in at top-right, zoom out
+            z_expr = f"max({z_max}-{z_step}*on,{z_min})"
+            x_expr = "iw-iw/zoom"
+            y_expr = "0"
+
+        elif mode == 'zoom_out_bottom_left':
+            # Start zoomed in at bottom-left, zoom out
+            z_expr = f"max({z_max}-{z_step}*on,{z_min})"
+            x_expr = "0"
+            y_expr = "ih-ih/zoom"
+            
         # Build video filter chain:
-        # 1. Scale up to 4K (7680x4320) for quality
-        # 2. Apply zoompan to create smooth motion
-        # 3. Convert to yuv420p for compatibility
+        # 1. Scale up to 4K (3840x2160) for quality, but not 8K to save performance
+        # 2. Apply zoompan
+        # 3. Scale output to 1080p for consistency? Or keep 4K? 
+        # The project seems to output 1080p final. 
+        # Let's keep the filter chain simple: Scale -> Zoompan -> Format
+        # Zoompan 's' parameter sets the OUTPUT size of the filter.
+        
         vf_chain = (
-            f"scale=7680x4320,"
-            f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={total_frames}:s=1920x1080:fps={fps},"
+            f"scale=3840x2160,"
+            f"zoompan=z='{z_expr}':x='{x_expr}':y='{y_expr}':d={total_frames}:s=1920x1080:fps={fps},"
             f"format=yuv420p"
         )
         
         # Build FFmpeg command
-        # -loop 1 is required for zoompan to work on still images
-        # It allows the filter to read the same frame multiple times to generate motion
         cmd = [
             'ffmpeg',
             '-loop', '1',  # Required for still image input
             '-i', image_path,
             '-vf', vf_chain,
             '-c:v', 'libx264',
-            '-crf', '18',  # Higher quality
-            '-preset', 'slow',  # Better compression
+            '-crf', '18',  # High quality
+            '-preset', 'slow',
             '-t', str(duration),
             '-y',  # Overwrite output file
             output_path
         ]
+        
+        print(f"Applying Ken Burns: Mode={mode}")
         
         try:
             result = subprocess.run(

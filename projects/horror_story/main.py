@@ -52,7 +52,7 @@ def generate_video_for_item(
             language=language, 
             mode=mode,
             voice_name="Charon", # Deep voice
-            prompt_prefix="Please read the following text in an eerie voice. Read at a normal, engaging pace: "
+            prompt_prefix="Please read the following text in an eerie voice. Read at a fast, engaging pace: "
         )
 
         # 1. Generate or Load Script
@@ -196,7 +196,8 @@ def generate_video_for_item(
                     "image": img_path,
                     "audio": audio_path,
                     "text": scene.get("text", ""),
-                    "image_prompt": scene.get("image_prompt", "")
+                    "image_prompt": scene.get("image_prompt", ""),
+                    "ken_burns": (i > 0) # Enable Ken Burns for non-title scenes
                 }
                 segments.append(segment_data)
             

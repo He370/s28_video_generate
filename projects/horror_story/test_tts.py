@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     
     # Default horror prompt if not provided (matching current main.py)
-    default_prompt = "Please read the following text in an eerie voice. Read at a normal, engaging pace: "
+    default_prompt = "Please read the following text in an eerie voice. Read at a fast, engaging pace: "
     prompt_prefix = args.prompt if args.prompt else default_prompt
     
     # Default text if not provided
