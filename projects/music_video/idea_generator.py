@@ -170,6 +170,7 @@ The visual style must match the "Dark Biophilic Luxury" aesthetic:
         * Example: "A hyper-realistic wide shot of a luxury brutalist study room carved into a cliffside cave... Outside a massive glass wall, a stormy ocean crashes... **Glass pane is covered in detailed wet droplets.** Interior lit by a warm vintage desk lamp... Dark teal and amber color grading..."
 
 8.  **"video_prompt"**: (For Veo 3 - Image-to-Video)
+        * **Strict Visual Consistency:** The video prompt must ONLY describe movement for elements explicitly present in the generated "image_prompt". DO NOT introduce new objects, like steam rising from a glass but there is no steam described in the image_prompt.
         * **Structure:** Describe motion in layers, but prioritize **GENTLENESS**:
             1.  **Background (Nature/The Dynamic Layer):** 
                 - IF OCEAN: "Heavy ocean swells rolling and crashing continuously in slow motion."
@@ -247,17 +248,22 @@ def generate_idea_to_file(
 
         if not skip_image_generation:
             if image_prompt:
-                logging.info("Generating cover image...")
-                client = GeminiClient(mode="dev" if dev_mode else "prod")
-                try:
-                    client.generate_image(
-                        prompt=image_prompt,
-                        output_path=cover_image_file,
-                        model=GEMINI_IMAGE_MODEL_IMAGEN4
-                    )
+                # Check if cover image already exists to avoid redundant API calls
+                if os.path.exists(cover_image_file):
+                    logging.info(f"Cover image already exists at {cover_image_file}, reusing existing asset.")
                     idea['cover_image_path'] = os.path.abspath(cover_image_file)
-                except Exception as e:
-                    logging.error(f"Error generating cover image: {e}")
+                else:
+                    logging.info("Generating cover image...")
+                    client = GeminiClient(mode="dev" if dev_mode else "prod")
+                    try:
+                        client.generate_image(
+                            prompt=image_prompt,
+                            output_path=cover_image_file,
+                            model=GEMINI_IMAGE_MODEL_IMAGEN4
+                        )
+                        idea['cover_image_path'] = os.path.abspath(cover_image_file)
+                    except Exception as e:
+                        logging.error(f"Error generating cover image: {e}")
         else:
             logging.info("Skipping cover image generation (will be generated during video creation).")
             # We still set the path where it WILL be, so downstream tools know where to look

@@ -4,8 +4,33 @@ import json
 import logging
 import subprocess
 
+import shutil
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_binary_path(binary_name):
+    """Find the absolute path to a binary, with specific checks for Homebrew."""
+    path = shutil.which(binary_name)
+    if path:
+        return path
+    
+    # Common fallback locations for Mac (especially Homebrew on Apple Silicon)
+    possible_paths = [
+        f"/opt/homebrew/bin/{binary_name}",
+        f"/usr/local/bin/{binary_name}",
+        f"/usr/bin/{binary_name}"
+    ]
+    
+    for p in possible_paths:
+        if os.path.exists(p):
+            return p
+            
+    return binary_name
+
+# Define command paths globally
+FFMPEG_CMD = get_binary_path("ffmpeg")
+FFPROBE_CMD = get_binary_path("ffprobe")
 
 AUDIO_FILE = 'final_audio.mp3'
 VIDEO_LOOP = 'visuals_loop.mp4'
@@ -32,14 +57,14 @@ def assemble_final_video(audio_file: str, video_loop: str, output_video: str, du
     try:
         # Get video loop duration
         result = subprocess.run([
-            "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", video_loop
+            FFPROBE_CMD, "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", video_loop
         ], capture_output=True, text=True, check=True)
         loop_duration = float(result.stdout.strip())
         
         intro_duration = 0
         if intro_video:
             result = subprocess.run([
-                "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", intro_video
+                FFPROBE_CMD, "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", intro_video
             ], capture_output=True, text=True, check=True)
             intro_duration = float(result.stdout.strip())
             
@@ -67,7 +92,7 @@ def assemble_final_video(audio_file: str, video_loop: str, output_video: str, du
                 f.write(f"file '{video_loop}'\n")
         
         cmd = [
-            "ffmpeg",
+            FFMPEG_CMD,
             "-f", "concat",
             "-safe", "0",
             "-i", concat_file,
@@ -86,7 +111,7 @@ def assemble_final_video(audio_file: str, video_loop: str, output_video: str, du
     else:
         # Traditional stream_loop approach
         cmd = [
-            "ffmpeg",
+            FFMPEG_CMD,
             "-stream_loop", "-1",
             "-i", video_loop,
             "-stream_loop", "-1", 

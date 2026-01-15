@@ -42,13 +42,19 @@ def main():
         with open(videos_json_path, 'w') as f:
             json.dump([], f)
 
-    # Add new video if requested
+    # Add new video if requested (only if no pending videos exist)
     if args.add_new:
-        logging.info("Adding new pending video to queue...")
-        batch_processor.add_video_to_queue(videos_json_path, {
-            "duration_hours": args.hours,
-            "status": "pending"
-        })
+        videos = batch_processor.load_video_queue(videos_json_path)
+        pending_videos = [v for v in videos if v.get('status') == 'pending']
+        
+        if pending_videos:
+            logging.info(f"Skipping adding new video - {len(pending_videos)} pending video(s) already in queue.")
+        else:
+            logging.info("Adding new pending video to queue...")
+            batch_processor.add_video_to_queue(videos_json_path, {
+                "duration_hours": args.hours,
+                "status": "pending"
+            })
 
     videos = batch_processor.load_video_queue(videos_json_path)
     pending_videos = [v for v in videos if v.get('status') == 'pending']
