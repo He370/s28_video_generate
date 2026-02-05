@@ -119,7 +119,7 @@ def main():
                 privacy_status = 'private'
                 
                 # Determine schedule time
-                # history -> 18:00, horror -> 20:00, music -> 07:00, default -> 18:00
+                # history -> 18:00, horror -> 20:00, music -> 07:00, white_noise -> 21:00, default -> 18:00
                 target_hour = 18
                 if "history" in args.project_name.lower():
                     target_hour = 18
@@ -127,6 +127,8 @@ def main():
                     target_hour = 20
                 elif "music" in args.project_name.lower():
                     target_hour = 7
+                elif "white_noise" in args.project_name.lower():
+                    target_hour = 21  # 9 PM - optimal for sleep/ambient content
                 
                 now = datetime.datetime.now().astimezone()
                 target_time = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
