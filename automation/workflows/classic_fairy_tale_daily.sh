@@ -2,46 +2,25 @@
 
 # Classic Fairy Tale Daily Automation Script
 
-# Get the directory of the script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# SCRIPT_DIR is .../automation/workflows
-PROJECT_ROOT="$SCRIPT_DIR/../../"
+set -e
 
-# Activate virtual environment if it exists
-if [ -d "$PROJECT_ROOT/venv" ]; then
-    source "$PROJECT_ROOT/venv/bin/activate"
-fi
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-echo "=================================================="
-echo "Starting Classic Fairy Tale Automation"
-echo "Date: $(date)"
-echo "=================================================="
-
-# Check for arguments
-MODE="prod"
-COUNT=1
-
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --mode) MODE="$2"; shift ;;
-        --count) COUNT="$2"; shift ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
-    esac
-    shift
-done
-
-export PYTHONPATH=$PROJECT_ROOT
+cd "$PROJECT_ROOT"
+source "$PROJECT_ROOT/venv/bin/activate"
 
 # Step 1: Generate Videos
 echo "Step 1: Generating videos..."
-python3 "$PROJECT_ROOT/projects/classic_fairy_tale/main.py" --mode "$MODE" --count "$COUNT"
+python3 "$PROJECT_ROOT/projects/classic_fairy_tale/main.py" --mode prod --count 1
 
 # Step 2: Upload Videos
 echo "Step 2: Uploading videos..."
 # Default to private upload for safety, can be changed if user implies public. 
 # "upload video" doesn't strictly imply public, so private is safer for automation.
 # Also, assuming 'classic_fairy_tale' matches the folder name in projects/
-python3 "$PROJECT_ROOT/video_uploader/batch_upload.py" classic_fairy_tale --count "$COUNT" --privacy public
+python3 "$PROJECT_ROOT/video_uploader/batch_upload.py" classic_fairy_tale --count 1 --privacy public --profile tale
 
 echo "=================================================="
 echo "Automation Complete"

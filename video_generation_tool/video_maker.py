@@ -270,9 +270,13 @@ class VideoMaker:
                     idx += 1
                     
                     if os.path.exists(file_path):
-                        clip = AudioFileClip(file_path)
-                        bgm_clips.append(clip)
-                        current_duration += clip.duration
+                        try:
+                            # Try to load the audio file
+                            clip = AudioFileClip(file_path)
+                            bgm_clips.append(clip)
+                            current_duration += clip.duration
+                        except Exception as e:
+                            print(f"Skipping problematic BGM file {file_path}: {e}")
                     else:
                         print(f"BGM file not found: {file_path}")
                         # Avoid infinite loop if all files are missing

@@ -310,7 +310,7 @@ def generate_video_for_item(
         video_maker.create_video(
             final_segments, 
             padding_config=padding_config, 
-            enable_ken_burns=True,
+            enable_ken_burns=False,
             bgm_files=bgm_files,
             bgm_volume=0.08
         )
@@ -376,12 +376,22 @@ def main():
             youtube_tags = []
             
             try:
-                video_dir = os.path.dirname(result['output_path'])
-                script_path = os.path.join(video_dir, "assets", "script.txt")
+                video_dir_path = result.get('output_path', '')
+                if video_dir_path:
+                    video_dir = os.path.dirname(video_dir_path)
+                else:
+                    video_dir = ""
+                # Try to load the storyboard JSON
+                script_path = os.path.join(video_dir, "assets", "script_storyboard.json")
                 
                 if os.path.exists(script_path):
                     with open(script_path, 'r') as f:
-                        script_content = f.read()
+                        scenes_data = json.load(f)
+                    
+                    # Convert JSON scenes back to text for metadata generation
+                    script_content = ""
+                    for scene in scenes_data:
+                        script_content += f"Scene: {scene.get('visual_idea', '')}\nVoiceover: {scene.get('voiceover', '')}\n\n"
                     
                     metadata = metadata_gen.generate_metadata(
                         script=script_content,
@@ -398,7 +408,7 @@ def main():
                     
                     print(f"Generated Title: {youtube_title}")
                 else:
-                    print("Script file not found, skipping metadata generation.")
+                    print(f"Script file not found at {script_path}, skipping metadata generation.")
             except Exception as e:
                 print(f"Error generating metadata: {e}")
 
