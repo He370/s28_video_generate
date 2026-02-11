@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import json
+import random
 from typing import Dict
 
 # Add the project root to sys.path
@@ -166,13 +167,24 @@ def generate_video_for_item(
             if not os.path.exists(reference_image_path):
                  print("Generating reference character sheet...")
                  ref_prompt = f"""
-                 Create a detailed character sheet for the main characters of the fairy tale "{topic}".
+                 Create a detailed CHARACTER REFERENCE SHEET and ART STYLE GUIDE for the fairy tale "{topic}".
                  
-                 Style: {image_style}
+                 ART STYLE: {image_style}
                  
-                 Include full-body designs of the protagonist and antagonist.
-                 Ensure consistent clothes/colors.
-                 Also write the name of the character next to each character.
+                 CHARACTER DESIGNS:
+                 - Show FULL-BODY designs of ALL main characters from the story (protagonist, antagonist, and supporting characters).
+                 - Each character must be clearly LABELED with their name written next to them.
+                 - Ensure consistent color palette, clothing details, hair style, and facial features for each character.
+                 - Show each character in a T-pose or natural standing pose for clear reference.
+                 - Characters should be arranged side by side on a clean background.
+                 
+                 STYLE GUIDE SECTION:
+                 - Include a small color palette swatch showing the key colors used.
+                 - The overall aesthetic must match: {image_style}
+                 
+                 This reference sheet will be used to maintain visual consistency across all scenes of the story.
+                 The image should be in 16:9 aspect ratio.
+                 IMPORTANT: The artwork must fill the entire image edge-to-edge with NO white borders, margins, or paper edges visible.
                  """
                  success = generate_image_with_retry(
                     client=client,
@@ -193,14 +205,15 @@ def generate_video_for_item(
                 visual_idea = scene.get("visual_idea", "")
                 
                 # Construct Image Prompt
+                edge_instruction = "IMPORTANT: The artwork must fill the entire image edge-to-edge with NO white borders, margins, or paper edges."
                 if i == 0:
                      # Intro Title
-                     image_prompt_text = f"Title card for '{topic}'. {visual_idea} Style: {image_style}"
+                     image_prompt_text = f"Title card for '{topic}'. {visual_idea} Style: {image_style}. {edge_instruction}"
                 elif i == len(scenes) - 1:
                      # Outro
-                     image_prompt_text = f"Final scene. {visual_idea} Style: {image_style}. Characters matching reference."
+                     image_prompt_text = f"Final scene. {visual_idea} Style: {image_style}. Characters must match the reference character sheet exactly. {edge_instruction}"
                 else:
-                     image_prompt_text = f"Scene description: {visual_idea}. Style: {image_style}."
+                     image_prompt_text = f"Scene description: {visual_idea}. Style: {image_style}. All characters must match their designs from the reference character sheet exactly — same clothing, colors, hair, and features. {edge_instruction}"
                 
                 # We save the *raw* request or generate a refined one? 
                 # The visual_idea is usually descriptive enough, but let's make it a full prompt request if needed.
@@ -286,7 +299,21 @@ def generate_video_for_item(
         # Custom padding for fairy tales: 2s start, 3s end
         padding_config = {0: 2.0, -1: 3.0, 'default': 0.5}
         
-        video_maker.create_video(final_segments, padding_config=padding_config)
+        # Load BGM files from project BGM folder
+        bgm_dir = os.path.join(project_dir, "BGM")
+        bgm_files = []
+        if os.path.exists(bgm_dir):
+            bgm_files = [os.path.join(bgm_dir, f) for f in os.listdir(bgm_dir) if f.endswith('.mp3')]
+            random.shuffle(bgm_files)
+            print(f"Found {len(bgm_files)} BGM files")
+        
+        video_maker.create_video(
+            final_segments, 
+            padding_config=padding_config, 
+            enable_ken_burns=True,
+            bgm_files=bgm_files,
+            bgm_volume=0.08
+        )
         print(f"Video created successfully: {video_path}")
         
         return {"success": True, "output_path": video_path}
