@@ -12,3 +12,6 @@
 
 # White Noise 8h - Tuesday, Thursday, Saturday, Sunday at 6:00 AM
 0 6 * * 0,2,4,6 /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project white_noise --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/white_noise_8h.sh"
+
+# Classic Fairy Tale Daily - Daily at 8:00 AM
+0 8 * * * /Users/leo/Documents/antigravity/s28_video_generate/venv/bin/python3 /Users/leo/Documents/antigravity/s28_video_generate/automation/run_job.py --project classic_fairy_tale --command "/Users/leo/Documents/antigravity/s28_video_generate/automation/workflows/classic_fairy_tale_daily.sh"

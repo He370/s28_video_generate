@@ -119,9 +119,16 @@ def main():
                 privacy_status = 'private'
                 
                 # Determine schedule time
-                # history -> 18:00, horror -> 20:00, music -> 07:00, white_noise -> 21:00, default -> 18:00
+                # history -> 18:00, horror -> 20:00, music -> 07:00, white_noise -> 21:00
+                # classic_fairy_tale -> weekdays 19:00, weekends 08:00
+                # default -> 18:00
+                now = datetime.datetime.now().astimezone()
                 target_hour = 18
-                if "history" in args.project_name.lower():
+                if "classic_fairy_tale" in args.project_name.lower():
+                    # Weekday (Mon-Fri) = 7 PM, Weekend (Sat-Sun) = 8 AM
+                    is_weekend = now.weekday() >= 5  # 5=Saturday, 6=Sunday
+                    target_hour = 8 if is_weekend else 19
+                elif "history" in args.project_name.lower():
                     target_hour = 18
                 elif "horror" in args.project_name.lower():
                     target_hour = 20
@@ -130,7 +137,6 @@ def main():
                 elif "white_noise" in args.project_name.lower():
                     target_hour = 21  # 9 PM - optimal for sleep/ambient content
                 
-                now = datetime.datetime.now().astimezone()
                 target_time = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
                 
                 if target_time < now:
