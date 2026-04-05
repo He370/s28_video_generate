@@ -245,7 +245,7 @@ def _create_subtitle_clips(subtitles: list, video_duration: float):
 
         try:
             txt_clip = TextClip(
-                text=chunk["text"],
+                text=f"\n{chunk['text']}\n",
                 font=SUBTITLE_FONT,
                 font_size=SUBTITLE_FONT_SIZE,
                 color=SUBTITLE_COLOR,
