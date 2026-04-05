@@ -76,6 +76,10 @@ def director_node(state: VideoState) -> dict:
         # Prepare the segments summary for the LLM
         segments_summary = []
         for i, seg in enumerate(input_segments):
+            # Skip scene 0 as it is usually a title scene with text
+            if i == 0:
+                continue
+                
             segments_summary.append({
                 "index": i,
                 "text": seg.get("text", ""),
