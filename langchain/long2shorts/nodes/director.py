@@ -25,11 +25,13 @@ RULES:
 2. Total voiceover text MUST be under 80 English words.
 3. Select only 4 to 6 key scenes from the provided segments.
 4. Budget EXACTLY 3 scenes with "type": "veo" (AI-generated video clips). The rest MUST be "type": "static_pan".
-5. Total duration should be between 30-40 seconds.
-6. Each scene duration should be between 4-8 seconds.
-7. For "veo" scenes, write a dynamic, cinematic Veo prompt describing camera movement and action.
-8. For "static_pan" scenes, set veo_prompt to an empty string.
-9. Use the original_image path from the input segments — do NOT invent paths.
+5. CRITICAL: The very FIRST scene (index 0) MUST be "type": "veo" to hook the viewer.
+6. CRITICAL: Within the FIRST THREE scenes (indices 0, 1, 2), there MUST be EXACTLY 2 "veo" scenes.
+7. Total duration should be between 30-40 seconds.
+8. Each scene duration should be between 4-8 seconds.
+9. For "veo" scenes, write a dynamic, cinematic Veo prompt describing camera movement and action.
+10. For "static_pan" scenes, set veo_prompt to an empty string.
+11. Use the original_image path from the input segments — do NOT invent paths.
 
 OUTPUT FORMAT: Return ONLY valid JSON (no markdown fencing) with this exact schema:
 {
@@ -96,7 +98,8 @@ Here are all {len(segments_summary)} segments from the long-form video:
 {json.dumps(segments_summary, indent=2)}
 
 Now create a YouTube Shorts script following the rules.
-Remember: EXACTLY 3 "veo" scenes, the rest "static_pan". 
+Remember: EXACTLY 3 "veo" scenes total. First scene MUST be "veo". 
+Exactly 2 "veo" scenes within the first three scenes.
 4-6 total scenes. Under 80 words total voiceover. 30-40 seconds total.
 Use the actual image paths from the segments above.
 """
@@ -127,8 +130,17 @@ Use the actual image paths from the segments above.
         response_text = response.text.strip()
         logger.info(f"Raw Gemini response:\n{response_text}")
 
-        # Parse JSON response
-        short_script = json.loads(response_text)
+        # Parse JSON response with extra robustness
+        try:
+            short_script = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to find the first complete JSON object/array
+            import re
+            match = re.search(r'(\{.*\}|\[.*\])', response_text, re.DOTALL)
+            if match:
+                short_script = json.loads(match.group(0))
+            else:
+                raise
 
         # Handle case where Gemini returns a JSON array instead of object
         if isinstance(short_script, list) and len(short_script) > 0:

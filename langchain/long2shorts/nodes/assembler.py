@@ -385,42 +385,62 @@ def assembler_node(state: VideoState) -> dict:
         else:
             logger.warning("  ⚠️ No subtitles data, rendering without subtitles")
 
-        # ── Mix audio: TTS voiceover + BGM ──
-        audio_layers = []
-
-        # Layer 1: TTS voiceover
+        # ── Synchronize duration with Master Audio ──
         master_audio_path = audio_assets.get("master_audio", "")
         if master_audio_path and os.path.exists(master_audio_path):
-            logger.info(f"  🔊 Attaching voiceover: {master_audio_path}")
             tts_audio = AudioFileClip(master_audio_path)
-            if tts_audio.duration > final_clip.duration:
-                tts_audio = tts_audio.subclipped(0, final_clip.duration)
+            audio_duration = tts_audio.duration
+            
+            if final_clip.duration < audio_duration:
+                diff = audio_duration - final_clip.duration
+                logger.info(f"  ⏳ Video ({final_clip.duration:.1f}s) is shorter than audio ({audio_duration:.1f}s). Filling {diff:.1f}s gap...")
+                
+                # Try to fill with random Veo assets
+                extra_clips = []
+                available_veo = list(veo_assets.values())
+                
+                while diff > 0:
+                    if available_veo:
+                        v_path = random.choice(available_veo)
+                        # Use a reasonable chunk size or the remaining diff
+                        chunk_dur = min(diff, 5.0) 
+                        try:
+                            extra_clips.append(_create_veo_clip(v_path, chunk_dur))
+                            diff -= chunk_dur
+                        except Exception:
+                            # If veo fails, fallback to a random image from the story
+                            break
+                    else:
+                        break
+                
+                if extra_clips:
+                    final_clip = concatenate_videoclips([final_clip] + extra_clips, method="compose")
+            
+            elif final_clip.duration > audio_duration:
+                logger.info(f"  ✂️ Video ({final_clip.duration:.1f}s) is longer than audio ({audio_duration:.1f}s). Trimming video...")
+                final_clip = final_clip.subclipped(0, audio_duration)
+            
+            # Attach audio
+            audio_layers = []
             audio_layers.append(tts_audio)
+            
+            # Layer 2: BGM
+            bgm_path = _select_bgm(bgm_dir)
+            if bgm_path:
+                logger.info(f"  🎶 Mixing BGM at {int(BGM_VOLUME * 100)}% volume")
+                bgm_audio = AudioFileClip(bgm_path)
+                if bgm_audio.duration < final_clip.duration:
+                    from moviepy.video.fx import Loop
+                    bgm_audio = Loop(duration=final_clip.duration).apply(bgm_audio)
+                else:
+                    bgm_audio = bgm_audio.subclipped(0, final_clip.duration)
+                bgm_audio = bgm_audio.with_volume_scaled(BGM_VOLUME)
+                audio_layers.append(bgm_audio)
+
+            mixed_audio = CompositeAudioClip(audio_layers)
+            final_clip = final_clip.with_audio(mixed_audio)
         else:
-            logger.warning("  ⚠️ No master audio found")
-
-        # Layer 2: BGM (if available)
-        bgm_path = _select_bgm(bgm_dir)
-        if bgm_path:
-            logger.info(f"  🎶 Mixing BGM at {int(BGM_VOLUME * 100)}% volume")
-            bgm_audio = AudioFileClip(bgm_path)
-            # Loop or trim BGM to match video duration
-            if bgm_audio.duration < final_clip.duration:
-                # Loop the BGM
-                loops_needed = int(final_clip.duration / bgm_audio.duration) + 1
-                from moviepy import concatenate_audioclips
-                bgm_audio = concatenate_audioclips([bgm_audio] * loops_needed)
-            bgm_audio = bgm_audio.subclipped(0, final_clip.duration)
-            bgm_audio = bgm_audio.with_volume_scaled(BGM_VOLUME)
-            audio_layers.append(bgm_audio)
-
-        # Combine audio layers
-        if audio_layers:
-            if len(audio_layers) == 1:
-                final_clip = final_clip.with_audio(audio_layers[0])
-            else:
-                mixed_audio = CompositeAudioClip(audio_layers)
-                final_clip = final_clip.with_audio(mixed_audio)
+            logger.warning("  ⚠️ No master audio found, skipping duration sync")
 
         # Render final video
         final_video_path = os.path.join(output_dir, "youtube_short.mp4")
