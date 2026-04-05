@@ -233,25 +233,23 @@ class GeminiClient:
         try:
             time.sleep(self.delay)
             
-            # Load first and last frame (same image for seamless loop)
+            # Load reference image using types.Image for proper encoding
             if image_path and os.path.exists(image_path):
-                print(f"Using reference image for first and last frame: {image_path}")
-                first_frame = Image.open(image_path)
-                last_frame = Image.open(image_path)
+                print(f"Using reference image: {image_path}")
+                reference_image = types.Image.from_file(location=image_path)
             else:
                 raise ValueError("Image path is required for Veo video generation")
             
             print(f"Calling client.models.generate_videos with {target_model}...")
             
-            # Generate video with first and last frame
+            # Generate video from reference image
             operation = self.client.models.generate_videos(
                 model=target_model,
                 prompt=prompt,
-                image=first_frame,
+                image=reference_image,
                 config=types.GenerateVideosConfig(
                     aspect_ratio="16:9",
                     duration_seconds=8,
-                    last_frame=last_frame
                 ),
             )
             
