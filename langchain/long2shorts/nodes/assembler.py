@@ -132,7 +132,8 @@ def _create_static_pan_clip(image_path: str, duration: float, assets_dir: str, s
         logger.error(f"FFmpeg zoompan error: {e.stderr.decode()[:500]}")
         raise
 
-    fg_clip = VideoFileClip(temp_fg_video).subclipped(0, duration)
+    fg_clip = VideoFileClip(temp_fg_video)
+    fg_clip = fg_clip.subclipped(0, min(duration, fg_clip.duration))
 
     # Position foreground centered vertically
     y_pos = (OUTPUT_HEIGHT - fg_h) // 2
@@ -152,12 +153,16 @@ def _create_veo_clip(video_path: str, duration: float):
     Creates a vertical (9:16) clip from a Veo-generated video.
     Center-crops to 9:16 if necessary, trims to requested duration.
     """
-    from moviepy import VideoFileClip
+    from moviepy import VideoFileClip, ImageClip, concatenate_videoclips
 
     clip = VideoFileClip(video_path)
 
     if clip.duration > duration:
         clip = clip.subclipped(0, duration)
+    elif clip.duration < duration:
+        last_frame = clip.get_frame(clip.duration - 0.1)
+        freeze_clip = ImageClip(last_frame).with_duration(duration - clip.duration)
+        clip = concatenate_videoclips([clip, freeze_clip])
 
     clip_w, clip_h = clip.size
     target_ratio = OUTPUT_WIDTH / OUTPUT_HEIGHT
@@ -213,9 +218,15 @@ def _create_subtitle_clips(subtitles: list, video_duration: float):
         current_chunk_words.append(word)
         current_chunk_end = end
 
-        if len(current_chunk_words) >= SUBTITLE_WORDS_PER_CHUNK:
+        current_text = " ".join(current_chunk_words)
+        is_sentence_end = any(word.endswith(punct) for punct in ('.', '!', '?', ',', ';', ':'))
+
+        if is_sentence_end or len(current_chunk_words) >= 8 or len(current_text) >= 40:
+            text_str = current_text.upper()
+            # Strip ".", ",", ";" if at the end of the text
+            text_str = text_str.rstrip(".,;")
             chunks.append({
-                "text": " ".join(current_chunk_words).upper(),
+                "text": text_str,
                 "start": current_chunk_start,
                 "end": current_chunk_end,
             })
@@ -225,8 +236,10 @@ def _create_subtitle_clips(subtitles: list, video_duration: float):
 
     # Don't forget the last partial chunk
     if current_chunk_words:
+        text_str = " ".join(current_chunk_words).upper()
+        text_str = text_str.rstrip(".,;")
         chunks.append({
-            "text": " ".join(current_chunk_words).upper(),
+            "text": text_str,
             "start": current_chunk_start,
             "end": current_chunk_end,
         })
@@ -251,7 +264,8 @@ def _create_subtitle_clips(subtitles: list, video_duration: float):
                 color=SUBTITLE_COLOR,
                 stroke_color=SUBTITLE_STROKE_COLOR,
                 stroke_width=SUBTITLE_STROKE_WIDTH,
-                method="label",  # 'label' renders full text without clipping
+                method="caption",
+                size=(int(OUTPUT_WIDTH * 0.85), None),
                 text_align="center",
             )
             txt_clip = (

@@ -203,7 +203,7 @@ class GeminiClient:
             print(f"Error generating text: {e}")
             return ""
 
-    def generate_video(self, prompt: str, output_path: str, model: Optional[str] = None, image_path: Optional[str] = None) -> None:
+    def generate_video(self, prompt: str, output_path: str, model: Optional[str] = None, image_path: Optional[str] = None, aspect_ratio: str = "16:9") -> None:
         """
         Generates a video using Gemini (Veo).
         """
@@ -248,7 +248,7 @@ class GeminiClient:
                 prompt=prompt,
                 image=reference_image,
                 config=types.GenerateVideosConfig(
-                    aspect_ratio="16:9",
+                    aspect_ratio=aspect_ratio,
                     duration_seconds=8,
                 ),
             )

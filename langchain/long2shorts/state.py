@@ -25,7 +25,8 @@ class VideoState(TypedDict, total=False):
     input_video_dir: str              # Path to video_XX directory (e.g. horror_story/output/video_84)
     input_segments: list              # Raw data: [{'image': '/path.png', 'text': '...', 'visual_idea': '...'}]
     style_category: str               # e.g., "Horror" or "Fairy Tale"
-
+    dev_mode: bool                    # If true, runs nodes in dev/mock mode
+    
     # ── Director Output ───────────────────────────────────────
     short_script: Optional[dict]      # The director's cut timeline
     # Schema:

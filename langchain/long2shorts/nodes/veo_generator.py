@@ -50,8 +50,9 @@ def veo_generator_node(state: VideoState) -> dict:
     try:
         from video_generation_tool.gemini_client import GeminiClient
 
-        # Initialize GeminiClient in production mode for real Veo calls
-        client = GeminiClient(mode="prod")
+        # Initialize GeminiClient in requested mode
+        mode = "dev" if state.get("dev_mode", False) else "prod"
+        client = GeminiClient(mode=mode)
 
         for i, scene in enumerate(timeline):
             if scene.get("type") != "veo":
@@ -74,17 +75,39 @@ def veo_generator_node(state: VideoState) -> dict:
             logger.info(f"     Prompt: {veo_prompt[:100]}...")
 
             try:
-                # Convert image to JPEG for reliable API encoding
+                # Convert image to RGB
                 pil_img = Image.open(image_path).convert("RGB")
+                img_w, img_h = pil_img.size
+                
+                # Center crop to 9:16
+                target_ratio = 9.0 / 16.0
+                current_ratio = img_w / img_h
+                
+                if current_ratio > target_ratio:
+                    new_w = int(img_h * target_ratio)
+                    left = (img_w - new_w) // 2
+                    pil_img = pil_img.crop((left, 0, left + new_w, img_h))
+                else:
+                    new_h = int(img_w / target_ratio)
+                    top = (img_h - new_h) // 2
+                    pil_img = pil_img.crop((0, top, img_w, top + new_h))
+                
+                # Save as JPEG for reliable API encoding
                 temp_jpg = os.path.join(assets_dir, f"_veo_input_{i}.jpg")
                 pil_img.save(temp_jpg, "JPEG", quality=95)
 
-                # Call the real Veo API
-                client.generate_video(
-                    prompt=veo_prompt,
-                    output_path=output_path,
-                    image_path=temp_jpg,
-                )
+                if state.get("dev_mode", False):
+                    # use moviepy to make it a dummy directly
+                    import subprocess
+                    subprocess.run(["ffmpeg", "-y", "-loop", "1", "-i", temp_jpg, "-c:v", "libx264", "-t", "5", "-pix_fmt", "yuv420p", output_path], check=True)
+                else:
+                    # Call the real Veo API
+                    client.generate_video(
+                        prompt=veo_prompt,
+                        output_path=output_path,
+                        image_path=temp_jpg,
+                        aspect_ratio="9:16",
+                    )
 
                 if os.path.exists(output_path):
                     veo_assets[i] = output_path

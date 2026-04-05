@@ -77,6 +77,10 @@ def main():
         "--output-dir", type=str, default="",
         help="Custom output directory (default: auto-generated under langchain/long2shorts/output/)"
     )
+    parser.add_argument(
+        "--dev", action="store_true",
+        help="Run in dev mode (uses mock APIs)"
+    )
 
     args = parser.parse_args()
 
@@ -126,6 +130,7 @@ def main():
         "input_video_dir": video_dir,
         "input_segments": segments,
         "style_category": args.style,
+        "dev_mode": args.dev,
         "short_script": None,
         "veo_assets": None,
         "audio_assets": None,

@@ -193,6 +193,9 @@ def audio_agent_node(state: VideoState) -> dict:
 
                 # Use actual audio duration for offset
                 cumulative_offset += scene_audio_duration
+                
+                # Update the scene's duration to match the audio
+                scene["duration"] = max(scene_audio_duration, 4.0)
 
         asyncio.run(_generate_all_scenes())
 
@@ -221,6 +224,7 @@ def audio_agent_node(state: VideoState) -> dict:
 
         logger.info("✅ AUDIO AGENT NODE — Complete")
         return {
+            "short_script": short_script,
             "audio_assets": audio_result,
             "error_message": None,
         }
