@@ -29,7 +29,8 @@ GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
 # GEMINI_IMAGE_MODEL = "imagen-3.0-generate-002"
 GEMINI_IMAGE_ADVANCED_MODEL = "gemini-3-pro-image-preview"
 GEMINI_IMAGE_MODEL_IMAGEN4 = "imagen-4.0-generate-001"
-GEMINI_VIDEO_MODEL = "veo-3.1-fast-generate-preview"
+#GEMINI_VIDEO_MODEL = "veo-3.1-fast-generate-preview"
+GEMINI_VIDEO_MODEL = "veo-3.1-lite-generate-preview"
 
 IMAGE_STYLE_PROMPT = (
     "The style should be realistic high quality historical illustration, painting, "
