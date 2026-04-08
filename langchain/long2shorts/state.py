@@ -26,6 +26,7 @@ class VideoState(TypedDict, total=False):
     input_segments: list              # Raw data: [{'image': '/path.png', 'text': '...', 'visual_idea': '...'}]
     style_category: str               # e.g., "Horror" or "Fairy Tale"
     dev_mode: bool                    # If true, runs nodes in dev/mock mode
+    all_veo: bool                     # If true, all scenes use Veo clips (no static_pan)
     
     # ── Director Output ───────────────────────────────────────
     short_script: Optional[dict]      # The director's cut timeline

@@ -81,6 +81,10 @@ def main():
         "--dev", action="store_true",
         help="Run in dev mode (uses mock APIs)"
     )
+    parser.add_argument(
+        "--all-veo", action="store_true",
+        help="Generate ALL scenes as Veo video clips (no static_pan)"
+    )
 
     args = parser.parse_args()
 
@@ -120,6 +124,7 @@ def main():
     logger.info("=" * 70)
     logger.info(f"  Source:    {video_dir}")
     logger.info(f"  Style:     {args.style}")
+    logger.info(f"  All Veo:   {args.all_veo}")
     logger.info(f"  Segments:  {len(segments)}")
     logger.info(f"  BGM:       {bgm_dir or '(none)'}")
     logger.info(f"  Output:    {output_dir}")
@@ -131,6 +136,7 @@ def main():
         "input_segments": segments,
         "style_category": args.style,
         "dev_mode": args.dev,
+        "all_veo": args.all_veo,
         "short_script": None,
         "veo_assets": None,
         "audio_assets": None,

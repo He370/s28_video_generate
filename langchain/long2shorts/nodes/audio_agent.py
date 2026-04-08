@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 # edge_tts voice for YouTube Shorts narration
 EDGE_TTS_VOICE = "en-US-ChristopherNeural"
 
+# Gemini TTS voice mapping based on style category
+# Available: "Aoede", "Charon", "Fenrir", "Kore", "Puck"
+GEMINI_VOICE_MAPPING = {
+    "Horror": "Charon",
+    "Fairy Tale": "Aoede",
+    "History": "Fenrir",
+    "History Mystery": "Fenrir",
+    "Today in History": "Fenrir"
+}
+DEFAULT_GEMINI_VOICE = "Aoede"
+
 
 async def _generate_scene_audio(
     text: str,
@@ -161,6 +172,16 @@ def audio_agent_node(state: VideoState) -> dict:
         all_subtitles = []  # [(start_sec, end_sec, word), ...]
         cumulative_offset = 0.0  # Track total elapsed time across scenes
 
+        # Initialize GeminiClient for TTS if in prod mode
+        dev_mode = state.get("dev_mode", False)
+        gemini_client = None
+        if not dev_mode:
+            try:
+                from video_generation_tool.gemini_client import GeminiClient
+                gemini_client = GeminiClient(mode="prod")
+            except Exception as e:
+                logger.warning(f"Could not init GeminiClient for TTS, falling back to edge_tts. Error: {e}")
+
         async def _generate_all_scenes():
             nonlocal cumulative_offset
 
@@ -175,10 +196,22 @@ def audio_agent_node(state: VideoState) -> dict:
 
                 logger.info(f"  🎙️ Scene {i}: \"{voiceover[:60]}...\"")
 
+                # Select appropriate Gemini voice based on style
+                style = state.get("style_category", "Default")
+                gemini_voice = GEMINI_VOICE_MAPPING.get(style, DEFAULT_GEMINI_VOICE)
+
                 # Generate TTS audio
-                await _generate_scene_audio(
-                    voiceover, scene_audio_path, EDGE_TTS_VOICE
-                )
+                if gemini_client:
+                    logger.info(f"     Using Gemini TTS (Voice: {gemini_voice})...")
+                    try:
+                        gemini_client.generate_audio(voiceover, scene_audio_path, voice_name=gemini_voice)
+                    except Exception as e:
+                        logger.error(f"Gemini TTS failed, falling back to edge_tts: {e}")
+                        await _generate_scene_audio(voiceover, scene_audio_path, EDGE_TTS_VOICE)
+                else:
+                    await _generate_scene_audio(
+                        voiceover, scene_audio_path, EDGE_TTS_VOICE
+                    )
 
                 scene_audio_files.append(scene_audio_path)
 

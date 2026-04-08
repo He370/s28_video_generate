@@ -29,9 +29,32 @@ RULES:
 6. CRITICAL: Within the FIRST THREE scenes (indices 0, 1, 2), there MUST be EXACTLY 2 "veo" scenes.
 7. Total duration should be between 30-40 seconds.
 8. Each scene duration should be between 4-8 seconds.
-9. For "veo" scenes, write a dynamic, cinematic Veo prompt describing camera movement and action.
-10. For "static_pan" scenes, set veo_prompt to an empty string.
-11. Use the original_image path from the input segments — do NOT invent paths.
+9. For "static_pan" scenes, set veo_prompt to an empty string.
+10. Use the original_image path from the input segments — do NOT invent paths.
+
+VEO PROMPT RULES (CRITICAL — follow these exactly for every "veo" scene):
+The source image is the first frame. The veo_prompt must describe ONLY what
+changes from that still image. Do NOT redescribe subjects, setting, colors,
+or style already visible in the image.
+
+Structure each veo_prompt as:
+  [Camera Motion] + [Subject Action] + [Environmental Changes] + [Audio/Atmosphere]
+
+Guidelines:
+- Camera: Use specific directorial terms (slow push-in, lateral tracking shot,
+  crane up, static close-up, handheld follow, orbital pan, etc.).
+- Subject action: Describe ONE clear motion the main subject performs
+  (turns head, raises hand, blinks, walks forward, etc.).
+- Environment: Add subtle ambient motion (leaves rustle, fog drifts, flames
+  flicker, dust motes float, water ripples, etc.).
+- Audio: Always end with an ambient sound cue (soft wind, crackling fire,
+  distant thunder, faint crowd murmur, dripping water, etc.).
+- Keep each veo_prompt between 20-40 words. Be direct and concise.
+- NEVER mention artistic style, color palette, lighting setup, or composition —
+  the image already defines those.
+
+Good example: "Slow push-in. The knight raises his sword overhead. Smoke drifts across the battlefield. Distant war drums and clashing steel."
+Bad example: "A dramatic cinematic shot of a knight in dark armor standing on a smoky battlefield with golden lighting, oil painting style." (This redescribes the image — WRONG.)
 
 OUTPUT FORMAT: Return ONLY valid JSON (no markdown fencing) with this exact schema:
 {
@@ -42,7 +65,63 @@ OUTPUT FORMAT: Return ONLY valid JSON (no markdown fencing) with this exact sche
       "duration": <int>,
       "voiceover": "Sentence for this scene...",
       "original_image": "/absolute/path/to/img.png",
-      "veo_prompt": "Dynamic prompt for Veo if type is veo, else empty string"
+      "veo_prompt": "Motion-only prompt for Veo if type is veo, else empty string"
+    }
+  ]
+}
+"""
+
+
+DIRECTOR_ALL_VEO_PROMPT = """You are an expert YouTube Shorts director.
+Your job is to take a long-form video's scene segments and condense them into
+a punchy, highly engaging 30-40 second vertical (9:16) YouTube Short.
+
+ALL-VEO MODE: Every single scene MUST be "type": "veo". Do NOT use "static_pan" at all.
+
+RULES:
+1. Extract a strong "HOOK" for the first 3 seconds — something shocking, mysterious, or curiosity-driven.
+2. Total voiceover text MUST be under 80 English words.
+3. Select only 4 to 6 key scenes from the provided segments.
+4. EVERY scene MUST have "type": "veo" — no exceptions.
+5. Total duration should be between 30-40 seconds.
+6. Each scene duration should be between 5-8 seconds.
+7. Use the original_image path from the input segments — do NOT invent paths.
+
+VEO PROMPT RULES (CRITICAL — follow these exactly for every scene):
+The source image is the first frame. The veo_prompt must describe ONLY what
+changes from that still image. Do NOT redescribe subjects, setting, colors,
+or style already visible in the image.
+
+Structure each veo_prompt as:
+  [Camera Motion] + [Subject Action] + [Environmental Changes] + [Audio/Atmosphere]
+
+Guidelines:
+- Camera: Use specific directorial terms (slow push-in, lateral tracking shot,
+  crane up, static close-up, handheld follow, orbital pan, etc.).
+- Subject action: Describe ONE clear motion the main subject performs
+  (turns head, raises hand, blinks, walks forward, etc.).
+- Environment: Add subtle ambient motion (leaves rustle, fog drifts, flames
+  flicker, dust motes float, water ripples, etc.).
+- Audio: Always end with an ambient sound cue (soft wind, crackling fire,
+  distant thunder, faint crowd murmur, dripping water, etc.).
+- Keep each veo_prompt between 20-40 words. Be direct and concise.
+- NEVER mention artistic style, color palette, lighting setup, or composition —
+  the image already defines those.
+- VARY camera motions across scenes — don't repeat the same movement.
+
+Good example: "Slow push-in. The knight raises his sword overhead. Smoke drifts across the battlefield. Distant war drums and clashing steel."
+Bad example: "A dramatic cinematic shot of a knight in dark armor standing on a smoky battlefield with golden lighting, oil painting style." (This redescribes the image — WRONG.)
+
+OUTPUT FORMAT: Return ONLY valid JSON (no markdown fencing) with this exact schema:
+{
+  "total_duration": <int>,
+  "timeline": [
+    {
+      "type": "veo",
+      "duration": <int>,
+      "voiceover": "Sentence for this scene...",
+      "original_image": "/absolute/path/to/img.png",
+      "veo_prompt": "Motion-only prompt for Veo"
     }
   ]
 }
@@ -89,7 +168,27 @@ def director_node(state: VideoState) -> dict:
                 "visual_idea": seg.get("image_prompt", seg.get("visual_idea", "")),
             })
 
-        user_prompt = f"""
+        all_veo = state.get("all_veo", False)
+
+        if all_veo:
+            system_prompt = DIRECTOR_ALL_VEO_PROMPT
+            user_prompt = f"""
+Style/Category: {style_category}
+Source Video: {input_video_dir}
+
+Here are all {len(segments_summary)} segments from the long-form video:
+
+{json.dumps(segments_summary, indent=2)}
+
+Now create a YouTube Shorts script following the ALL-VEO rules.
+ALL scenes must be "type": "veo" — no static_pan allowed.
+4-6 total scenes. Under 80 words total voiceover. 30-40 seconds total.
+Use the actual image paths from the segments above.
+"""
+            logger.info("🎬 Mode: ALL-VEO (every scene gets a Veo clip)")
+        else:
+            system_prompt = DIRECTOR_SYSTEM_PROMPT
+            user_prompt = f"""
 Style/Category: {style_category}
 Source Video: {input_video_dir}
 
@@ -121,7 +220,7 @@ Use the actual image paths from the segments above.
 
         response = client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=f"{DIRECTOR_SYSTEM_PROMPT}\n\n{user_prompt}",
+            contents=f"{system_prompt}\n\n{user_prompt}",
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
             ),

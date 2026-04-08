@@ -21,6 +21,52 @@ if _PROJECT_ROOT not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+_SMART_CROP_PROMPT = """\
+This image will be cropped from 16:9 landscape to 9:16 portrait (vertical). \
+Only a narrow vertical strip (about 56% of the height's width) will be kept.
+
+Analyze the image and determine the best HORIZONTAL position for the crop \
+so that the main subject or focal point is preserved.
+
+Return a single decimal number between 0.0 and 1.0 where:
+- 0.0 = crop the leftmost strip
+- 0.5 = crop the center strip
+- 1.0 = crop the rightmost strip
+
+Reply with ONLY the number, nothing else. Example: 0.35"""
+
+
+def _get_smart_crop_position(client, pil_img) -> float:
+    """Ask Gemini to suggest the best horizontal crop position for 9:16.
+
+    Args:
+        client: GeminiClient instance (already initialised).
+        pil_img: PIL Image in RGB mode.
+
+    Returns:
+        Float between 0.0 and 1.0 representing the horizontal crop anchor.
+    """
+    from google.genai import types
+
+    # Downscale for faster API response — we only need composition info
+    thumb = pil_img.copy()
+    thumb.thumbnail((512, 512))
+
+    response = client.client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=[_SMART_CROP_PROMPT, thumb],
+        config=types.GenerateContentConfig(
+            temperature=0.0,
+            http_options=types.HttpOptions(timeout=30_000),
+        ),
+    )
+    raw = response.text.strip()
+    value = float(raw)
+    if not (0.0 <= value <= 1.0):
+        raise ValueError(f"Crop position {value} out of range [0, 1]")
+    return value
+
+
 
 def veo_generator_node(state: VideoState) -> dict:
     """
@@ -79,13 +125,24 @@ def veo_generator_node(state: VideoState) -> dict:
                 pil_img = Image.open(image_path).convert("RGB")
                 img_w, img_h = pil_img.size
                 
-                # Center crop to 9:16
+                # Smart crop to 9:16 — ask Gemini for optimal horizontal position
                 target_ratio = 9.0 / 16.0
                 current_ratio = img_w / img_h
                 
                 if current_ratio > target_ratio:
                     new_w = int(img_h * target_ratio)
-                    left = (img_w - new_w) // 2
+                    # Smart crop: use Gemini to find best horizontal position
+                    crop_position = 0.5  # default to center
+                    try:
+                        crop_position = _get_smart_crop_position(client, pil_img)
+                        logger.info(f"     🎯 Smart crop position: {crop_position:.2f}")
+                    except Exception as crop_err:
+                        logger.warning(f"     ⚠️ Smart crop failed, falling back to center: {crop_err}")
+                        crop_position = 0.5
+                    
+                    max_left = img_w - new_w
+                    left = int(max_left * crop_position)
+                    left = max(0, min(left, max_left))
                     pil_img = pil_img.crop((left, 0, left + new_w, img_h))
                 else:
                     new_h = int(img_w / target_ratio)
@@ -101,12 +158,15 @@ def veo_generator_node(state: VideoState) -> dict:
                     import subprocess
                     subprocess.run(["ffmpeg", "-y", "-loop", "1", "-i", temp_jpg, "-c:v", "libx264", "-t", "5", "-pix_fmt", "yuv420p", output_path], check=True)
                 else:
-                    # Call the real Veo API
-                    client.generate_video(
+                    # Call the real Veo API with retry
+                    from video_generation_tool.utils import generate_video_with_retry
+                    generate_video_with_retry(
+                        client=client,
                         prompt=veo_prompt,
                         output_path=output_path,
                         image_path=temp_jpg,
                         aspect_ratio="9:16",
+                        max_retries=1,
                     )
 
                 if os.path.exists(output_path):

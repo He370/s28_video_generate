@@ -203,6 +203,67 @@ class GeminiClient:
             print(f"Error generating text: {e}")
             return ""
 
+    def generate_audio(self, text: str, output_path: str, voice_name: str = "Aoede") -> None:
+        """
+        Generates TTS audio using Gemini's native audio modality.
+        voice_name can be "Aoede", "Charon", "Fenrir", "Kore", "Puck"
+        """
+        import wave
+        import tempfile
+        import subprocess
+
+        print(f"Generating audio with Gemini TTS for text: {text[:50]}...")
+        if self.mode == "dev":
+            print("DEV MODE: Audio generation skipped in GeminiClient (using edge_tts).")
+            return
+
+        try:
+            time.sleep(self.delay)
+            # Use gemini-2.5-flash-preview-tts as it supports response_modalities=["AUDIO"]
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash-preview-tts',
+                contents=text,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=voice_name
+                            )
+                        )
+                    )
+                )
+            )
+
+            data = response.candidates[0].content.parts[0].inline_data.data
+
+            # Save as WAV first, then convert to MP3 for pipeline compatibility if needed
+            if output_path.endswith('.mp3'):
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
+                    with wave.open(temp_wav.name, "wb") as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(2)
+                        wf.setframerate(24000)
+                        wf.writeframes(data)
+                    # Convert to mp3
+                    subprocess.run(
+                        ["ffmpeg", "-y", "-i", temp_wav.name, "-acodec", "libmp3lame", output_path],
+                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                os.remove(temp_wav.name)
+            else:
+                with wave.open(output_path, "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(24000)
+                    wf.writeframes(data)
+                    
+            print(f"Audio saved to {output_path}")
+
+        except Exception as e:
+            print(f"Error generating audio with Gemini: {e}")
+            raise e
+
     def generate_video(self, prompt: str, output_path: str, model: Optional[str] = None, image_path: Optional[str] = None, aspect_ratio: str = "16:9") -> None:
         """
         Generates a video using Gemini (Veo).

@@ -79,3 +79,29 @@ def generate_image_with_retry(client, image_prompt, output_path, max_retries=3, 
                 print(f"  Failed to generate image after {max_retries} attempts.")
                 return False
     return False
+
+
+def generate_video_with_retry(client, prompt, output_path, image_path, aspect_ratio="9:16", max_retries=3):
+    """
+    Tries to generate a video with retries using GeminiClient (Veo).
+    """
+    import time
+    RETRY_DELAY = 10  # Veo API might need more wait time on 429
+    
+    for attempt in range(max_retries):
+        try:
+            client.generate_video(
+                prompt=prompt,
+                output_path=output_path,
+                image_path=image_path,
+                aspect_ratio=aspect_ratio,
+            )
+            return True
+        except Exception as e:
+            print(f"  Error generating video (attempt {attempt+1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"  Failed to generate video after {max_retries} attempts.")
+                return False
+    return False

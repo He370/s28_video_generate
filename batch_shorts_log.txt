@@ -1,0 +1,137 @@
+/Users/leo/Documents/antigravity/s28_video_generate/venv/lib/python3.14/site-packages/langchain_core/_api/deprecation.py:25: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.
+  from pydantic.v1.fields import FieldInfo as FieldInfoV1
+2026-04-07 22:39:09,612 - __main__ - INFO - Loaded 20 segments from /Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/segments.json
+2026-04-07 22:39:09,612 - __main__ - INFO -   BGM Dir:   /Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/BGM
+2026-04-07 22:39:09,612 - __main__ - INFO - ======================================================================
+2026-04-07 22:39:09,612 - __main__ - INFO - 🎬 Long2Shorts Agent — LangGraph Pipeline
+2026-04-07 22:39:09,612 - __main__ - INFO - ======================================================================
+2026-04-07 22:39:09,612 - __main__ - INFO -   Source:    /Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1
+2026-04-07 22:39:09,612 - __main__ - INFO -   Style:     Fairy Tale
+2026-04-07 22:39:09,612 - __main__ - INFO -   Segments:  20
+2026-04-07 22:39:09,612 - __main__ - INFO -   BGM:       /Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/BGM
+2026-04-07 22:39:09,612 - __main__ - INFO -   Output:    /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909
+2026-04-07 22:39:09,612 - __main__ - INFO - ======================================================================
+2026-04-07 22:39:09,622 - langchain.long2shorts.graph - INFO - LangGraph Long2Shorts compiled successfully
+2026-04-07 22:39:09,623 - langchain.long2shorts.graph - INFO -   Nodes: ['__start__', 'director', 'veo_generator', 'audio_agent', 'assembler', '__end__']
+2026-04-07 22:39:09,623 - __main__ - INFO - Starting LangGraph execution...
+2026-04-07 22:39:09,624 - langchain.long2shorts.nodes.director - INFO - ============================================================
+2026-04-07 22:39:09,624 - langchain.long2shorts.nodes.director - INFO - 🎬 DIRECTOR NODE — Starting
+2026-04-07 22:39:09,624 - langchain.long2shorts.nodes.director - INFO - ============================================================
+2026-04-07 22:39:10,087 - langchain.long2shorts.nodes.director - INFO - Calling Gemini (gemini-3-flash-preview) for script generation...
+2026-04-07 22:39:10,087 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-04-07 22:39:19,693 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO - Raw Gemini response:
+{
+  "total_duration": 40,
+  "timeline": [
+    {
+      "type": "veo",
+      "duration": 7,
+      "voiceover": "Would you keep a promise to a monster just to get your favorite toy back?",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_4.png",
+      "veo_prompt": "Slow push-in. The frog's head slowly rises from the rippling water, blinking its large eyes. Bubbles rise to the surface. Soft splashing and croaking sound."
+    },
+    {
+      "type": "static_pan",
+      "duration": 6,
+      "voiceover": "When a slimy guest arrived at the palace, the princess tried to hide.",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_9.png",
+      "veo_prompt": ""
+    },
+    {
+      "type": "veo",
+      "duration": 7,
+      "voiceover": "But the King forced her to share her dinner with the creature.",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_11.png",
+      "veo_prompt": "Lateral tracking shot. The frog gulps down a piece of food while the princess winces. Dust motes float in the dining hall light. Faint clinking of silverware."
+    },
+    {
+      "type": "veo",
+      "duration": 7,
+      "voiceover": "Enraged, she hurled the frog against the wall, but then... a miracle happened.",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_14.png",
+      "veo_prompt": "Handheld follow. The frog flies through the air as light begins to radiate from its skin. Shimmering particles fill the bedroom. Muffled thud and magical chiming."
+    },
+    {
+      "type": "static_pan",
+      "duration": 7,
+      "voiceover": "The curse was broken, revealing a handsome prince hidden beneath the warts.",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_15.png",
+      "veo_prompt": ""
+    },
+    {
+      "type": "static_pan",
+      "duration": 6,
+      "voiceover": "Be careful what you promise! Subscribe for more classic tales.",
+      "original_image": "/Users/leo/Documents/antigravity/s28_video_generate/projects/classic_fairy_tale/output/video_1/assets/scene_18.png",
+      "veo_prompt": ""
+    }
+  ]
+}
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO - 📋 Script Summary:
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO -    Scenes: 6
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO -    Veo scenes: 3
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO -    Total voiceover words: 75
+2026-04-07 22:39:19,695 - langchain.long2shorts.nodes.director - INFO -    Total duration: 40s
+2026-04-07 22:39:19,696 - langchain.long2shorts.nodes.director - INFO - Script saved to /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/short_script.json
+2026-04-07 22:39:19,696 - langchain.long2shorts.nodes.director - INFO - ✅ DIRECTOR NODE — Complete
+2026-04-07 22:39:19,699 - langchain.long2shorts.nodes.veo_generator - INFO - ============================================================
+2026-04-07 22:39:19,699 - langchain.long2shorts.nodes.veo_generator - INFO - 🎥 VEO GENERATOR NODE — Starting
+2026-04-07 22:39:19,699 - langchain.long2shorts.nodes.veo_generator - INFO - ============================================================
+2026-04-07 22:39:19,721 - langchain.long2shorts.nodes.veo_generator - INFO -   🎬 Generating Veo clip for scene 0
+2026-04-07 22:39:19,721 - langchain.long2shorts.nodes.veo_generator - INFO -      Image: scene_4.png
+2026-04-07 22:39:19,721 - langchain.long2shorts.nodes.veo_generator - INFO -      Prompt: Slow push-in. The frog's head slowly rises from the rippling water, blinking its large eyes. Bubbles...
+2026-04-07 22:39:19,749 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-04-07 22:39:26,554 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 22:39:26,557 - langchain.long2shorts.nodes.veo_generator - INFO -      🎯 Smart crop position: 0.45
+2026-04-07 22:39:28,276 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview:predictLongRunning "HTTP/1.1 200 OK"
+2026-04-07 22:39:38,405 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/jwjlmn3aexkn "HTTP/1.1 200 OK"
+2026-04-07 22:39:48,519 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/jwjlmn3aexkn "HTTP/1.1 200 OK"
+2026-04-07 22:39:58,634 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/jwjlmn3aexkn "HTTP/1.1 200 OK"
+2026-04-07 22:40:08,755 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/jwjlmn3aexkn "HTTP/1.1 200 OK"
+2026-04-07 22:40:18,877 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/jwjlmn3aexkn "HTTP/1.1 200 OK"
+2026-04-07 22:40:18,990 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/files/9fsk7jkg7xfy:download?alt=media "HTTP/1.1 302 Found"
+2026-04-07 22:40:19,288 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/download/v1beta/files/9fsk7jkg7xfy:download?alt=media "HTTP/1.1 200 OK"
+2026-04-07 22:40:19,483 - langchain.long2shorts.nodes.veo_generator - INFO -   ✅ Veo clip saved: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_0.mp4
+2026-04-07 22:40:19,483 - langchain.long2shorts.nodes.veo_generator - INFO -   🎬 Generating Veo clip for scene 2
+2026-04-07 22:40:19,483 - langchain.long2shorts.nodes.veo_generator - INFO -      Image: scene_11.png
+2026-04-07 22:40:19,483 - langchain.long2shorts.nodes.veo_generator - INFO -      Prompt: Lateral tracking shot. The frog gulps down a piece of food while the princess winces. Dust motes flo...
+2026-04-07 22:40:19,503 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-04-07 22:40:25,638 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 22:40:25,640 - langchain.long2shorts.nodes.veo_generator - INFO -      🎯 Smart crop position: 0.55
+2026-04-07 22:40:27,479 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview:predictLongRunning "HTTP/1.1 200 OK"
+2026-04-07 22:40:37,608 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/wk1wg3thf9uo "HTTP/1.1 200 OK"
+2026-04-07 22:40:47,736 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/wk1wg3thf9uo "HTTP/1.1 200 OK"
+2026-04-07 22:40:57,846 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/wk1wg3thf9uo "HTTP/1.1 200 OK"
+2026-04-07 22:41:07,973 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/wk1wg3thf9uo "HTTP/1.1 200 OK"
+2026-04-07 22:41:18,103 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/wk1wg3thf9uo "HTTP/1.1 200 OK"
+2026-04-07 22:41:18,147 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/files/mrt51anqcow9:download?alt=media "HTTP/1.1 302 Found"
+2026-04-07 22:41:18,579 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/download/v1beta/files/mrt51anqcow9:download?alt=media "HTTP/1.1 200 OK"
+2026-04-07 22:41:18,767 - langchain.long2shorts.nodes.veo_generator - INFO -   ✅ Veo clip saved: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_2.mp4
+2026-04-07 22:41:18,767 - langchain.long2shorts.nodes.veo_generator - INFO -   🎬 Generating Veo clip for scene 3
+2026-04-07 22:41:18,767 - langchain.long2shorts.nodes.veo_generator - INFO -      Image: scene_14.png
+2026-04-07 22:41:18,767 - langchain.long2shorts.nodes.veo_generator - INFO -      Prompt: Handheld follow. The frog flies through the air as light begins to radiate from its skin. Shimmering...
+2026-04-07 22:41:18,785 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-04-07 22:41:25,653 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 22:41:25,654 - langchain.long2shorts.nodes.veo_generator - INFO -      🎯 Smart crop position: 0.45
+2026-04-07 22:41:27,487 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview:predictLongRunning "HTTP/1.1 200 OK"
+2026-04-07 22:41:37,613 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/dcubqfwgavxc "HTTP/1.1 200 OK"
+2026-04-07 22:41:47,967 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/dcubqfwgavxc "HTTP/1.1 200 OK"
+2026-04-07 22:41:58,085 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/dcubqfwgavxc "HTTP/1.1 200 OK"
+2026-04-07 22:42:08,228 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/dcubqfwgavxc "HTTP/1.1 200 OK"
+2026-04-07 22:42:18,360 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-lite-generate-preview/operations/dcubqfwgavxc "HTTP/1.1 200 OK"
+2026-04-07 22:42:18,470 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/files/cjhpowv6cbia:download?alt=media "HTTP/1.1 302 Found"
+2026-04-07 22:42:18,791 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/download/v1beta/files/cjhpowv6cbia:download?alt=media "HTTP/1.1 200 OK"
+2026-04-07 22:42:19,082 - langchain.long2shorts.nodes.veo_generator - INFO -   ✅ Veo clip saved: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_3.mp4
+2026-04-07 22:42:19,083 - langchain.long2shorts.nodes.veo_generator - INFO - 📦 Veo assets generated: 3 clips
+2026-04-07 22:42:19,083 - langchain.long2shorts.nodes.veo_generator - INFO -    Scene 0: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_0.mp4
+2026-04-07 22:42:19,083 - langchain.long2shorts.nodes.veo_generator - INFO -    Scene 2: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_2.mp4
+2026-04-07 22:42:19,083 - langchain.long2shorts.nodes.veo_generator - INFO -    Scene 3: /Users/leo/Documents/antigravity/s28_video_generate/langchain/long2shorts/output/run_20260407_223909/assets/veo_clip_3.mp4
+2026-04-07 22:42:19,083 - langchain.long2shorts.nodes.veo_generator - INFO - ✅ VEO GENERATOR NODE — Complete
+2026-04-07 22:42:19,087 - langchain.long2shorts.nodes.audio_agent - INFO - ============================================================
+2026-04-07 22:42:19,087 - langchain.long2shorts.nodes.audio_agent - INFO - 🎙️ AUDIO AGENT NODE — Starting
+2026-04-07 22:42:19,087 - langchain.long2shorts.nodes.audio_agent - INFO - ============================================================
+2026-04-07 22:42:19,112 - langchain.long2shorts.nodes.audio_agent - INFO -   🎙️ Scene 0: "Would you keep a promise to a monster just to get your favor..."
+2026-04-07 22:42:19,112 - langchain.long2shorts.nodes.audio_agent - INFO -      Using Gemini TTS (Voice: Aoede)...
+2026-04-07 22:42:20,117 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-04-07 22:42:23,911 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent "HTTP/1.1 200 OK"

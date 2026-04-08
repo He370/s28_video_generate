@@ -47,78 +47,78 @@ BGM_VOLUME = 0.10  # 10% volume for background music
 
 def _create_static_pan_clip(image_path: str, duration: float, assets_dir: str, scene_index: int):
     """
-    Creates a vertical (9:16) clip from a 16:9 image with:
-    - Background: center-cropped to fill 1080x1920, heavy Gaussian blur
-    - Foreground: smooth Ken Burns zoom via ffmpeg zoompan filter
+    Creates a vertical (9:16) clip from a source image using a slow
+    horizontal pan (left-to-right or right-to-left, randomly chosen).
 
-    Uses ffmpeg zoompan for buttery smooth zoom instead of per-frame PIL resize.
+    The image is scaled so its height fills 1920px, then a 1080x1920
+    window pans gently across only 30% of the available horizontal range
+    to keep the movement smooth and not too fast.
 
     Args:
-        image_path: Path to the 16:9 source image
+        image_path: Path to the source image
         duration: Duration of the clip in seconds
         assets_dir: Directory for intermediate files
         scene_index: Scene index for unique filenames
 
     Returns:
-        A CompositeVideoClip of the layered result
+        A VideoFileClip of the panned result (1080x1920)
     """
-    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
+    from moviepy import VideoFileClip
+    import random
 
     # Load original image
     pil_img = Image.open(image_path).convert("RGB")
     img_w, img_h = pil_img.size
 
-    # ── Background layer: center-crop to 9:16, heavy blur ──
-    target_ratio = OUTPUT_WIDTH / OUTPUT_HEIGHT  # 0.5625
-
-    current_ratio = img_w / img_h
-    if current_ratio > target_ratio:
-        new_w = int(img_h * target_ratio)
-        left = (img_w - new_w) // 2
-        bg_crop = pil_img.crop((left, 0, left + new_w, img_h))
-    else:
-        new_h = int(img_w / target_ratio)
-        top = (img_h - new_h) // 2
-        bg_crop = pil_img.crop((0, top, img_w, top + new_h))
-
-    bg_resized = bg_crop.resize((OUTPUT_WIDTH, OUTPUT_HEIGHT), Image.LANCZOS)
-    bg_blurred = bg_resized.filter(ImageFilter.GaussianBlur(radius=30))
-    bg_array = np.array(bg_blurred).astype(float) * 0.4
-    bg_array = bg_array.clip(0, 255).astype(np.uint8)
-
-    bg_clip = ImageClip(bg_array).with_duration(duration)
-
-    # ── Foreground layer: smooth zoompan via ffmpeg ──
-    fg_w = OUTPUT_WIDTH
-    fg_h = int(fg_w * img_h / img_w)  # Maintain aspect ratio
+    # Scale so height = OUTPUT_HEIGHT, width scales proportionally
+    target_h = OUTPUT_HEIGHT
+    target_w = int(img_w * (target_h / img_h))
 
     # Ensure even dimensions (required by x264)
-    fg_w = fg_w + (fg_w % 2)
-    fg_h = fg_h + (fg_h % 2)
+    target_w = target_w + (target_w % 2)
+    target_h = target_h + (target_h % 2)
 
-    # Prepare a resized source image for ffmpeg
-    fg_resized = pil_img.resize((fg_w, fg_h), Image.LANCZOS)
+    # If the scaled image is narrower than OUTPUT_WIDTH, scale by width instead
+    if target_w < OUTPUT_WIDTH:
+        target_w = OUTPUT_WIDTH
+        target_h = int(img_h * (target_w / img_w))
+        target_w = target_w + (target_w % 2)
+        target_h = target_h + (target_h % 2)
+
+    fg_resized = pil_img.resize((target_w, target_h), Image.LANCZOS)
     temp_fg_img = os.path.join(assets_dir, f"_fg_scene_{scene_index}.png")
     fg_resized.save(temp_fg_img)
 
-    # Use ffmpeg zoompan for smooth zoom (1.0x → 1.08x)
     total_frames = int(duration * OUTPUT_FPS)
-    temp_fg_video = os.path.join(assets_dir, f"_fg_zoom_{scene_index}.mp4")
+    temp_fg_video = os.path.join(assets_dir, f"_fg_pan_{scene_index}.mp4")
+
+    # Calculate the total horizontal travel available
+    max_travel = target_w - OUTPUT_WIDTH
+
+    # Only pan across 30% of the available range for a slow, gentle feel
+    pan_range = max(0, int(max_travel * 0.3))
+
+    # Center the pan range
+    start_offset = (max_travel - pan_range) // 2
+
+    # Randomly select pan direction
+    direction = random.choice(["left_to_right", "right_to_left"])
+    if direction == "left_to_right":
+        x_expr = f"{start_offset}+{pan_range}*(t/{duration})"
+    else:
+        x_expr = f"{start_offset}+{pan_range}*(1-t/{duration})"
+
+    # y is centered vertically
+    y_offset = max(0, (target_h - OUTPUT_HEIGHT) // 2)
 
     try:
         subprocess.run(
             [
                 "ffmpeg", "-y",
                 "-loop", "1",
+                "-framerate", str(OUTPUT_FPS),
                 "-i", temp_fg_img,
-                "-vf", (
-                    f"zoompan=z='1+0.08*in/{total_frames}'"
-                    f":x='iw/2-(iw/zoom/2)'"
-                    f":y='ih/2-(ih/zoom/2)'"
-                    f":d={total_frames}"
-                    f":s={fg_w}x{fg_h}"
-                    f":fps={OUTPUT_FPS}"
-                ),
+                "-vf", f"crop={OUTPUT_WIDTH}:{OUTPUT_HEIGHT}:x='{x_expr}':y='{y_offset}'",
                 "-c:v", "libx264",
                 "-pix_fmt", "yuv420p",
                 "-t", str(duration),
@@ -129,23 +129,13 @@ def _create_static_pan_clip(image_path: str, duration: float, assets_dir: str, s
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        logger.error(f"FFmpeg zoompan error: {e.stderr.decode()[:500]}")
+        logger.error(f"FFmpeg crop error: {e.stderr.decode()[:500]}")
         raise
 
     fg_clip = VideoFileClip(temp_fg_video)
     fg_clip = fg_clip.subclipped(0, min(duration, fg_clip.duration))
 
-    # Position foreground centered vertically
-    y_pos = (OUTPUT_HEIGHT - fg_h) // 2
-    fg_clip = fg_clip.with_position(("center", y_pos))
-
-    # Composite
-    composite = CompositeVideoClip(
-        [bg_clip, fg_clip],
-        size=(OUTPUT_WIDTH, OUTPUT_HEIGHT),
-    )
-
-    return composite
+    return fg_clip
 
 
 def _create_veo_clip(video_path: str, duration: float):
